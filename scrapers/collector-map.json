@@ -1,0 +1,18 @@
+{
+  "greenhouse": {
+    "envVar": "BRIGHTDATA_COLLECTOR_GREENHOUSE",
+    "collectorId": "c_msx9q4382esp256xog"
+  },
+  "lever": {
+    "envVar": "BRIGHTDATA_COLLECTOR_LEVER",
+    "collectorId": "c_msxa0g3b1ilusg0166"
+  },
+  "workday": {
+    "envVar": "BRIGHTDATA_COLLECTOR_WORKDAY",
+    "collectorId": "c_msxa3xjz2jxl9b2gae"
+  },
+  "naukri": {
+    "envVar": "BRIGHTDATA_COLLECTOR_NAUKRI",
+    "collectorId": "c_msx4q5e8japqva58p"
+  }
+}
