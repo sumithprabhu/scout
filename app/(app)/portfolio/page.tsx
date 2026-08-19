@@ -2,8 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
-import { fetchCompanies, fetchGlobalEvents, type CompanyDTO, type SignalEventDTO } from "@/lib/ui/api";
+import { Trash2, Plus } from "lucide-react";
+import { fetchCompanies, fetchGlobalEvents, deleteCompany, type CompanyDTO, type SignalEventDTO } from "@/lib/ui/api";
 import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { SignalPill } from "@/components/ui/Pill";
 import { Sparkline } from "@/components/company/Sparkline";
@@ -22,12 +22,12 @@ interface Row {
 type SortKey = "name" | "score" | "last";
 
 export default function PortfolioPage() {
-  const router = useRouter();
   const [companies, setCompanies] = useState<CompanyDTO[] | null>(null);
   const [events, setEvents] = useState<SignalEventDTO[]>([]);
   const [error, setError] = useState<string | null>(null);
   const [sortKey, setSortKey] = useState<SortKey>("score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -40,6 +40,19 @@ export default function PortfolioPage() {
       .catch((e) => alive && setError(e.message));
     return () => { alive = false; };
   }, []);
+
+  async function onDelete(id: string) {
+    setDeletingId(id);
+    try {
+      await deleteCompany(id);
+      setCompanies((cs) => (cs ? cs.filter((c) => c.companyId !== id) : cs));
+      setEvents((es) => es.filter((e) => e.companyId !== id));
+    } catch {
+      setError("Couldn’t remove that company. Try again.");
+    } finally {
+      setDeletingId(null);
+    }
+  }
 
   const rows: Row[] = useMemo(() => {
     if (!companies) return [];
@@ -78,73 +91,125 @@ export default function PortfolioPage() {
   };
 
   return (
-    <div>
-      <div className="mb-8 flex items-end justify-between">
+    <div className="flex h-full flex-col">
+      {/* fixed top bar */}
+      <div className="flex shrink-0 items-end justify-between gap-4 border-b border-line bg-white/60 px-6 pb-4 pt-6 backdrop-blur-sm lg:px-10">
         <div>
-          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink">Portfolio</h1>
-          <p className="mt-1.5 text-[15px] text-ink-muted">Every company you track, ranked by recent activity.</p>
+          <h1 className="text-[26px] font-semibold tracking-[-0.02em] text-ink">Portfolio</h1>
+          <p className="mt-1 text-[14.5px] text-ink-muted">
+            {companies ? `${companies.length} compan${companies.length === 1 ? "y" : "ies"} tracked, ranked by recent activity.` : "Every company you track, ranked by recent activity."}
+          </p>
         </div>
-        <Link href="/add" className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white shadow-[0_2px_12px_-2px_rgba(110,86,240,0.6)]">+ Track a company</Link>
+        <Link href="/add" className="inline-flex shrink-0 items-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-[0_2px_12px_-2px_rgba(110,86,240,0.6)]">
+          <Plus size={15} strokeWidth={2.5} /> Track a company
+        </Link>
       </div>
 
-      {error && <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">Couldn’t load portfolio: {error}</div>}
+      {/* scrollable body */}
+      <div className="min-h-0 flex-1 overflow-y-auto px-6 py-6 lg:px-10">
+        {error && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
-      {!companies && !error && <Skeleton className="h-64 w-full !bg-black/[0.05]" />}
+        {!companies && !error && <Skeleton className="h-64 w-full !bg-black/[0.05]" />}
 
-      {companies && companies.length === 0 && (
-        <EmptyState icon="🏢" title="No companies tracked yet" hint="Add your first company to start building your portfolio."
-          action={<Link href="/add" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Track a company</Link>} />
-      )}
+        {companies && companies.length === 0 && (
+          <EmptyState icon="🏢" title="No companies tracked yet" hint="Add your first company to start building your portfolio."
+            action={<Link href="/add" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">Track a company</Link>} />
+        )}
 
-      {companies && companies.length > 0 && (
-        <div className="overflow-hidden rounded-2xl border border-hairline-light bg-card shadow-card">
-          {/* header */}
-          <div className="grid grid-cols-[1.6fr_0.8fr_1fr_2fr] items-center gap-4 border-b border-hairline-light px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
-            <SortHeader label="Company" active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
-            <SortHeader label="Activity" active={sortKey === "score"} dir={sortDir} onClick={() => toggleSort("score")} />
-            <span>Trend · 14d</span>
-            <SortHeader label="Last signal" active={sortKey === "last"} dir={sortDir} onClick={() => toggleSort("last")} />
-          </div>
-          {/* rows */}
-          {sorted.map((r) => (
-            <button
-              key={r.company.companyId}
-              onClick={() => router.push(`/companies/${r.company.companyId}`)}
-              className="grid w-full grid-cols-[1.6fr_0.8fr_1fr_2fr] items-center gap-4 border-b border-hairline-light px-5 py-3.5 text-left transition-colors last:border-b-0 hover:bg-card-2"
-            >
-              <div className="flex items-center gap-3">
-                <CompanyLogo name={r.company.name} url={r.company.rootUrl} size={32} />
-                <div className="min-w-0">
-                  <div className="truncate text-sm font-semibold text-ink">{r.company.name}</div>
-                  <div className="truncate text-xs text-ink-muted">{r.events.length} signal{r.events.length === 1 ? "" : "s"}</div>
-                </div>
-              </div>
-              <ScoreBadge score={r.score} />
-              <div className="h-9">
-                {r.events.length > 0 ? <Sparkline data={r.series} height={36} /> : <span className="text-xs text-ink-muted">No activity</span>}
-              </div>
-              <div className="min-w-0">
-                {r.last ? (
-                  <div className="flex items-center gap-2">
-                    <SignalPill type={r.last.signalType} />
-                    <span className="truncate text-sm text-ink" title={r.last.summary}>{r.last.summary}</span>
-                    <span className="ml-auto shrink-0 text-xs text-ink-muted">{timeAgo(r.last.detectedAt)}</span>
+        {companies && companies.length > 0 && (
+          <div className="overflow-hidden rounded-2xl border border-hairline-light bg-card shadow-card">
+            {/* header */}
+            <div className="grid grid-cols-[1.6fr_0.8fr_1fr_2fr_auto] items-center gap-4 border-b border-hairline-light px-5 py-3 text-[11px] font-semibold uppercase tracking-wide text-ink-muted">
+              <SortHeader label="Company" active={sortKey === "name"} dir={sortDir} onClick={() => toggleSort("name")} />
+              <SortHeader label="Activity" active={sortKey === "score"} dir={sortDir} onClick={() => toggleSort("score")} />
+              <span>Trend · 14d</span>
+              <SortHeader label="Last signal" active={sortKey === "last"} dir={sortDir} onClick={() => toggleSort("last")} />
+              <span className="w-8" />
+            </div>
+            {/* rows */}
+            {sorted.map((r) => (
+              <div
+                key={r.company.companyId}
+                className="group relative grid grid-cols-[1.6fr_0.8fr_1fr_2fr_auto] items-center gap-4 border-b border-hairline-light px-5 py-3.5 transition-colors last:border-b-0 hover:bg-card-2"
+              >
+                {/* stretched navigation link (clicks anywhere open the company) */}
+                <Link href={`/companies/${r.company.companyId}`} className="absolute inset-0" aria-label={`Open ${r.company.name}`} />
+
+                <div className="flex items-center gap-3">
+                  <CompanyLogo name={r.company.name} url={r.company.rootUrl} size={32} />
+                  <div className="min-w-0">
+                    <div className="truncate text-sm font-semibold text-ink">{r.company.name}</div>
+                    <div className="truncate text-xs text-ink-muted">{r.events.length} signal{r.events.length === 1 ? "" : "s"}</div>
                   </div>
-                ) : (
-                  <span className="text-sm text-ink-muted">No changes yet</span>
-                )}
+                </div>
+                <ScoreBadge score={r.score} />
+                <div className="h-9">
+                  {r.events.length > 0 ? <Sparkline data={r.series} height={36} /> : <span className="text-xs text-ink-muted">No activity</span>}
+                </div>
+                <div className="min-w-0">
+                  {r.last ? (
+                    <div className="flex items-center gap-2">
+                      <SignalPill type={r.last.signalType} />
+                      <span className="truncate text-sm text-ink" title={r.last.summary}>{r.last.summary}</span>
+                      <span className="ml-auto shrink-0 text-xs text-ink-muted">{timeAgo(r.last.detectedAt)}</span>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-ink-muted">No changes yet</span>
+                  )}
+                </div>
+                <RowDelete
+                  name={r.company.name}
+                  busy={deletingId === r.company.companyId}
+                  onConfirm={() => onDelete(r.company.companyId)}
+                />
               </div>
-            </button>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
     </div>
+  );
+}
+
+function RowDelete({ name, busy, onConfirm }: { name: string; busy: boolean; onConfirm: () => void }) {
+  const [confirming, setConfirming] = useState(false);
+
+  if (busy) {
+    return <span className="relative z-10 w-8 text-center text-xs text-ink-muted">…</span>;
+  }
+  if (confirming) {
+    return (
+      <div className="relative z-10 flex items-center gap-1">
+        <button
+          onClick={onConfirm}
+          className="rounded-md bg-red-600 px-2 py-1 text-[11px] font-semibold text-white hover:bg-red-700"
+        >
+          Remove
+        </button>
+        <button
+          onClick={() => setConfirming(false)}
+          className="rounded-md border border-hairline px-2 py-1 text-[11px] font-semibold text-ink-muted hover:text-ink"
+        >
+          Cancel
+        </button>
+      </div>
+    );
+  }
+  return (
+    <button
+      onClick={() => setConfirming(true)}
+      aria-label={`Stop tracking ${name}`}
+      title={`Stop tracking ${name}`}
+      className="relative z-10 flex h-8 w-8 items-center justify-center rounded-lg text-ink-muted opacity-0 transition-all hover:bg-red-50 hover:text-red-600 group-hover:opacity-100"
+    >
+      <Trash2 size={15} />
+    </button>
   );
 }
 
 function SortHeader({ label, active, dir, onClick }: { label: string; active: boolean; dir: "asc" | "desc"; onClick: () => void }) {
   return (
-    <button onClick={onClick} className={`flex items-center gap-1 uppercase ${active ? "text-ink" : "hover:text-ink"}`}>
+    <button onClick={onClick} className={`relative z-10 flex items-center gap-1 uppercase ${active ? "text-ink" : "hover:text-ink"}`}>
       {label}
       <span className="text-[9px]">{active ? (dir === "asc" ? "▲" : "▼") : "▾"}</span>
     </button>

@@ -102,3 +102,9 @@ export async function addCompany(input: { url: string; name?: string; email?: st
 export async function addOrCorrectPage(companyId: string, input: { pageType: string; url: string }) {
   return postJSON<TrackedPageDTO & { error?: string }>(`/api/companies/${companyId}/pages`, input);
 }
+
+export async function deleteCompany(companyId: string) {
+  const res = await fetch(`/api/companies/${companyId}`, { method: "DELETE" });
+  if (!res.ok) throw new Error(`DELETE company -> ${res.status}`);
+  return res.json() as Promise<{ deleted: Record<string, number> }>;
+}

@@ -2,12 +2,13 @@
 
 import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { useParams } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import { useParams, useRouter } from "next/navigation";
+import { ArrowLeft, Trash2 } from "lucide-react";
 import {
   fetchCompanyEvents,
   fetchCompanyPages,
   fetchCompanies,
+  deleteCompany,
   type SignalEventDTO,
   type TrackedPageDTO,
   type CompanyDTO,
@@ -24,6 +25,7 @@ import { hostPath, domainOf } from "@/lib/ui/format";
 
 export default function CompanyDetailPage() {
   const params = useParams<{ id: string }>();
+  const router = useRouter();
   const id = params.id;
 
   const [company, setCompany] = useState<CompanyDTO | null>(null);
@@ -31,7 +33,20 @@ export default function CompanyDetailPage() {
   const [pages, setPages] = useState<TrackedPageDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeSignal, setActiveSignal] = useState<string | null>(null);
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const historyRef = useRef<HTMLElement | null>(null);
+
+  async function onDelete() {
+    setDeleting(true);
+    try {
+      await deleteCompany(id);
+      router.push("/portfolio");
+    } catch {
+      setDeleting(false);
+      setError("Couldn’t remove that company. Try again.");
+    }
+  }
 
   useEffect(() => {
     let alive = true;
@@ -67,15 +82,39 @@ export default function CompanyDetailPage() {
     if (core) requestAnimationFrame(() => historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
   }
 
-  if (error) {
-    return <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">Couldn’t load company: {error}</div>;
+  if (error && !company) {
+    return (
+      <div className="h-full overflow-y-auto px-6 py-8 lg:px-10">
+        <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">Couldn’t load company: {error}</div>
+      </div>
+    );
   }
 
   return (
-    <div>
-      <Link href="/portfolio" className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink">
-        <ArrowLeft size={15} /> Portfolio
-      </Link>
+    <div className="h-full overflow-y-auto px-6 py-8 lg:px-10">
+      <div className="mb-4 flex items-center justify-between">
+        <Link href="/portfolio" className="inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink">
+          <ArrowLeft size={15} /> Portfolio
+        </Link>
+        {company && (
+          confirmingDelete ? (
+            <div className="flex items-center gap-1.5">
+              <span className="text-xs text-ink-muted">Stop tracking {company.name}?</span>
+              <button onClick={onDelete} disabled={deleting} className="rounded-md bg-red-600 px-2.5 py-1 text-[12px] font-semibold text-white hover:bg-red-700 disabled:opacity-60">
+                {deleting ? "Removing…" : "Remove"}
+              </button>
+              <button onClick={() => setConfirmingDelete(false)} disabled={deleting} className="rounded-md border border-hairline px-2.5 py-1 text-[12px] font-semibold text-ink-muted hover:text-ink">
+                Cancel
+              </button>
+            </div>
+          ) : (
+            <button onClick={() => setConfirmingDelete(true)} className="inline-flex items-center gap-1.5 rounded-lg px-2.5 py-1.5 text-[13px] font-semibold text-ink-muted transition-colors hover:bg-red-50 hover:text-red-600">
+              <Trash2 size={14} /> Stop tracking
+            </button>
+          )
+        )}
+      </div>
+      {error && company && <div className="mb-4 rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">{error}</div>}
 
       {!company || !events ? (
         <div className="space-y-6">

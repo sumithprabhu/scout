@@ -149,10 +149,10 @@ export function AppShell({ children }: { children: ReactNode }) {
         </div>
       )}
 
-      {/* workspace */}
+      {/* workspace — fixed-height column; each page owns its header + scroll region */}
       <div className="md:pl-[248px]">
-        <main className="canvas-glow min-h-screen">
-          <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 lg:py-12">{children}</div>
+        <main className="canvas-glow flex h-[calc(100vh-3.5rem)] flex-col overflow-hidden md:h-screen">
+          {children}
         </main>
       </div>
     </div>

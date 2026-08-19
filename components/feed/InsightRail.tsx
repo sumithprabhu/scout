@@ -27,7 +27,7 @@ export function InsightRail({ events, companies = [] }: { events: SignalEventDTO
   const top = [...byCompany.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 3);
 
   return (
-    <aside className="sticky top-24 hidden w-[236px] shrink-0 lg:block">
+    <div>
       <div className="text-[10.5px] font-bold uppercase tracking-wider text-faint">This week</div>
 
       <div className="mt-3 rounded-2xl border border-hairline-light bg-card p-4 shadow-card">
@@ -76,6 +76,6 @@ export function InsightRail({ events, companies = [] }: { events: SignalEventDTO
       >
         View full portfolio →
       </Link>
-    </aside>
+    </div>
   );
 }

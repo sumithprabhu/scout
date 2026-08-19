@@ -103,6 +103,7 @@ function AddCompanyInner() {
   const foundNonHome = pagesData?.pages.filter((p) => p.pageType !== "homepage").length ?? 0;
 
   return (
+    <div className="h-full overflow-y-auto px-6 py-10 lg:px-10">
     <div className="mx-auto max-w-2xl">
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Track a company</h1>
@@ -177,6 +178,7 @@ function AddCompanyInner() {
           onDone={() => router.push(`/companies/${companyId}`)}
         />
       )}
+    </div>
     </div>
   );
 }
