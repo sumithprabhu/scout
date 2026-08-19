@@ -5,6 +5,7 @@ import Link from "next/link";
 import { fetchGlobalEvents, fetchCompanies, type SignalEventDTO, type CompanyDTO } from "@/lib/ui/api";
 import { SignalCard } from "@/components/feed/SignalCard";
 import { FilterBar } from "@/components/feed/FilterBar";
+import { InsightRail } from "@/components/feed/InsightRail";
 import { FeedSkeleton, EmptyState } from "@/components/ui/States";
 
 export default function FeedPage() {
@@ -89,30 +90,35 @@ export default function FeedPage() {
             onCompany={setActiveCompany}
             counts={counts}
           />
-          {filtered.length === 0 ? (
-            <EmptyState
-              icon="◎"
-              title="No signals match these filters"
-              hint="Try clearing a filter to see more activity."
-              action={
-                <button
-                  onClick={() => {
-                    setActiveSignal(null);
-                    setActiveCompany(null);
-                  }}
-                  className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink"
-                >
-                  Clear filters
-                </button>
-              }
-            />
-          ) : (
-            <div className="space-y-3.5">
-              {filtered.map((e, i) => (
-                <SignalCard key={e.signalEventId} event={e} index={i} />
-              ))}
+          <div className="flex gap-8">
+            <div className="min-w-0 flex-1">
+              {filtered.length === 0 ? (
+                <EmptyState
+                  icon="◎"
+                  title="No signals match these filters"
+                  hint="Try clearing a filter to see more activity."
+                  action={
+                    <button
+                      onClick={() => {
+                        setActiveSignal(null);
+                        setActiveCompany(null);
+                      }}
+                      className="rounded-lg border border-hairline px-4 py-2 text-sm font-semibold text-ink"
+                    >
+                      Clear filters
+                    </button>
+                  }
+                />
+              ) : (
+                <div className="space-y-3.5">
+                  {filtered.map((e, i) => (
+                    <SignalCard key={e.signalEventId} event={e} index={i} />
+                  ))}
+                </div>
+              )}
             </div>
-          )}
+            <InsightRail events={events} />
+          </div>
         </>
       )}
     </div>

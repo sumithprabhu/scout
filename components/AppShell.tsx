@@ -2,19 +2,20 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import type { ReactNode } from "react";
-import { Plus } from "lucide-react";
+import { useEffect, useState, type ReactNode } from "react";
+import { Plus, Rss, LayoutGrid, Menu, X } from "lucide-react";
+import { Avatar } from "@/components/ui/Avatar";
+import { fetchCompanies, type CompanyDTO } from "@/lib/ui/api";
 
 /**
- * App chrome: a white top rail (hairline border, blurred) carrying the Scout
- * three-bar mark, primary nav, and the "Track a company" action. Purple is the
- * brand accent (mark / nav highlight / primary button) — never used on data.
- * The workspace below sits on the soft canvas with a colored glow, matching the
- * landing page's light, minty aesthetic.
+ * App chrome as a persistent LEFT SIDEBAR — the same layout as the landing page's
+ * product mock (mint active states, hairline dividers, a tracked-companies quick
+ * list), promoted to the real app. Purple is the brand accent (mark + primary
+ * button); mint is the nav highlight. The workspace sits on the soft canvas glow.
  */
 const NAV = [
-  { href: "/feed", label: "Feed" },
-  { href: "/portfolio", label: "Portfolio" },
+  { href: "/feed", label: "Feed", Icon: Rss },
+  { href: "/portfolio", label: "Portfolio", Icon: LayoutGrid },
 ];
 
 /** The three ascending bars — Scout's "salute" mark, solid violet. */
@@ -28,58 +29,132 @@ function ScoutMark({ size = 22 }: { size?: number }) {
   );
 }
 
-function Wordmark() {
+function SidebarContent({ pathname, companies }: { pathname: string; companies: CompanyDTO[] }) {
   return (
-    <Link href="/" className="flex items-center gap-2" aria-label="Scout home">
-      <ScoutMark size={22} />
-      <span className="text-[17px] font-extrabold tracking-tight text-ink">Scout</span>
-    </Link>
+    <div className="flex h-full flex-col">
+      <Link href="/" className="flex items-center gap-2 px-2.5 py-1" aria-label="Scout home">
+        <ScoutMark size={22} />
+        <span className="text-[17px] font-extrabold tracking-tight text-ink">Scout</span>
+      </Link>
+
+      <Link
+        href="/add"
+        className="mt-5 inline-flex items-center justify-center gap-1.5 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white shadow-[0_2px_12px_-2px_rgba(110,86,240,0.6)] transition-transform hover:-translate-y-px active:translate-y-0"
+      >
+        <Plus size={15} strokeWidth={2.5} /> Track a company
+      </Link>
+
+      <nav className="mt-5 space-y-1">
+        {NAV.map(({ href, label, Icon }) => {
+          const active = pathname === href || pathname.startsWith(href + "/");
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={`flex items-center gap-2.5 rounded-lg px-2.5 py-2 text-[13.5px] font-semibold transition-colors ${
+                active ? "bg-mint text-ink" : "text-muted hover:bg-mint/60 hover:text-ink"
+              }`}
+            >
+              <Icon size={16} strokeWidth={2} className={active ? "text-purple-deep" : "opacity-70"} />
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+
+      {companies.length > 0 && (
+        <div className="mt-6 min-h-0 flex-1 overflow-y-auto">
+          <div className="mb-2 px-2.5 text-[10.5px] font-bold uppercase tracking-wider text-faint">
+            Companies
+          </div>
+          <div className="space-y-0.5">
+            {companies.map((c) => {
+              const active = pathname === `/companies/${c.companyId}`;
+              return (
+                <Link
+                  key={c.companyId}
+                  href={`/companies/${c.companyId}`}
+                  className={`flex items-center gap-2.5 rounded-lg px-2 py-1.5 text-[13px] transition-colors ${
+                    active ? "bg-mint font-semibold text-ink" : "text-muted hover:bg-mint/60 hover:text-ink"
+                  }`}
+                >
+                  <Avatar name={c.name} size={22} />
+                  <span className="truncate">{c.name}</span>
+                </Link>
+              );
+            })}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-auto pt-4">
+        <div className="flex items-center gap-2 rounded-lg bg-mint/70 px-3 py-2 text-[11.5px] text-ink/70">
+          <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal" />
+          Beta · free while we build
+        </div>
+      </div>
+    </div>
   );
 }
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname();
+  const [companies, setCompanies] = useState<CompanyDTO[]>([]);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  useEffect(() => {
+    let alive = true;
+    fetchCompanies()
+      .then((r) => alive && setCompanies(r.companies))
+      .catch(() => {});
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // close the mobile drawer on route change
+  useEffect(() => setMobileOpen(false), [pathname]);
+
   return (
-    <div className="min-h-screen">
-      <header className="sticky top-0 z-40 border-b border-hairline bg-chrome/85 backdrop-blur-xl">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
-          <Wordmark />
-          <nav className="flex items-center gap-1">
-            {NAV.map((item) => {
-              const active = pathname === item.href || pathname.startsWith(item.href + "/");
-              return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`rounded-lg px-3 py-1.5 text-sm font-medium transition-colors ${
-                    active
-                      ? "bg-brand-pastel text-brand-ink"
-                      : "text-ink-muted hover:text-ink hover:bg-black/[0.04]"
-                  }`}
-                >
-                  <span className="relative">
-                    {item.label}
-                    {active && (
-                      <span className="absolute -bottom-[7px] left-0 right-0 h-[2px] rounded-full bg-brand" />
-                    )}
-                  </span>
-                </Link>
-              );
-            })}
-          </nav>
-          <div className="ml-auto">
-            <Link
-              href="/add"
-              className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white shadow-[0_2px_12px_-2px_rgba(110,86,240,0.6)] transition-transform hover:-translate-y-px active:translate-y-0"
-            >
-              <Plus size={15} strokeWidth={2.5} /> Track a company
-            </Link>
-          </div>
-        </div>
+    <div className="min-h-screen bg-canvas">
+      {/* desktop sidebar */}
+      <aside className="fixed inset-y-0 left-0 z-40 hidden w-[248px] flex-col border-r border-line bg-white/90 px-4 py-5 backdrop-blur-xl md:flex">
+        <SidebarContent pathname={pathname} companies={companies} />
+      </aside>
+
+      {/* mobile top bar */}
+      <header className="sticky top-0 z-40 flex h-14 items-center gap-3 border-b border-line bg-white/90 px-4 backdrop-blur-xl md:hidden">
+        <button onClick={() => setMobileOpen(true)} aria-label="Open menu" className="text-ink">
+          <Menu size={20} />
+        </button>
+        <Link href="/" className="flex items-center gap-2">
+          <ScoutMark size={20} />
+          <span className="text-[16px] font-extrabold tracking-tight text-ink">Scout</span>
+        </Link>
+        <Link href="/add" className="ml-auto inline-flex items-center gap-1 rounded-lg bg-brand px-3 py-1.5 text-sm font-semibold text-white">
+          <Plus size={14} strokeWidth={2.5} /> Track
+        </Link>
       </header>
-      <main className="canvas-glow min-h-[calc(100vh-3.5rem)]">
-        <div className="mx-auto max-w-5xl px-4 py-10 sm:px-6 lg:py-12">{children}</div>
-      </main>
+
+      {/* mobile drawer */}
+      {mobileOpen && (
+        <div className="fixed inset-0 z-50 md:hidden">
+          <div className="absolute inset-0 bg-ink/30 backdrop-blur-sm" onClick={() => setMobileOpen(false)} />
+          <aside className="absolute inset-y-0 left-0 w-[264px] border-r border-line bg-white px-4 py-5 shadow-pop">
+            <button onClick={() => setMobileOpen(false)} aria-label="Close menu" className="absolute right-3 top-4 text-ink-muted">
+              <X size={18} />
+            </button>
+            <SidebarContent pathname={pathname} companies={companies} />
+          </aside>
+        </div>
+      )}
+
+      {/* workspace */}
+      <div className="md:pl-[248px]">
+        <main className="canvas-glow min-h-screen">
+          <div className="mx-auto max-w-5xl px-4 py-8 sm:px-8 lg:py-12">{children}</div>
+        </main>
+      </div>
     </div>
   );
 }
