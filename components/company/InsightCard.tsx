@@ -1,6 +1,6 @@
 "use client";
 
-import { Avatar } from "@/components/ui/Avatar";
+import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { Sparkline } from "./Sparkline";
 import type { SignalEventDTO } from "@/lib/ui/api";
 import { activityScore, eventFrequencySeries, lastEvent } from "@/lib/ui/derive";
@@ -38,7 +38,7 @@ export function InsightCard({
       <div className="flex flex-col gap-6 sm:flex-row sm:items-center sm:justify-between">
         {/* identity */}
         <div className="flex items-center gap-3.5">
-          <Avatar name={name} size={48} />
+          <CompanyLogo name={name} url={rootUrl} size={48} />
           <div>
             <h1 className="text-xl font-semibold tracking-tight text-ink">{name}</h1>
             <a

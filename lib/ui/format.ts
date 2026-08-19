@@ -51,6 +51,17 @@ export function renderValue(v: unknown): string {
   }
 }
 
+/** Bare registrable host from a URL or bare domain, e.g. "vercel.com". */
+export function domainOf(url?: string | null): string | undefined {
+  if (!url) return undefined;
+  try {
+    const u = new URL(url.startsWith("http") ? url : `https://${url}`);
+    return u.hostname.replace(/^www\./, "");
+  } catch {
+    return undefined;
+  }
+}
+
 /** Host label from a URL, e.g. "vercel.com/pricing". */
 export function hostPath(url: string): string {
   try {

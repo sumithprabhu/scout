@@ -5,7 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "framer-motion";
 import type { SignalEventDTO } from "@/lib/ui/api";
 import { SignalPill } from "@/components/ui/Pill";
-import { Avatar } from "@/components/ui/Avatar";
+import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { DiffView } from "./DiffView";
 import { severityStyle, signalStyle } from "@/lib/ui/signals";
 import { timeAgo } from "@/lib/ui/format";
@@ -16,7 +16,7 @@ import { timeAgo } from "@/lib/ui/format";
  * metadata. A thin left rail in the signal's accent color makes the feed
  * scannable by category at a glance. Expands into the old->new diff.
  */
-export function SignalCard({ event, index = 0 }: { event: SignalEventDTO; index?: number }) {
+export function SignalCard({ event, index = 0, domain }: { event: SignalEventDTO; index?: number; domain?: string }) {
   const [open, setOpen] = useState(false);
   const sev = severityStyle(event.severity);
   const accent = signalStyle(event.signalType).accent;
@@ -37,7 +37,7 @@ export function SignalCard({ event, index = 0 }: { event: SignalEventDTO; index?
           className={`flex-1 px-5 py-4 text-left ${hasDiff ? "cursor-pointer" : "cursor-default"}`}
         >
           <div className="flex items-center gap-2.5">
-            <Avatar name={event.companyName ?? "?"} size={28} />
+            <CompanyLogo name={event.companyName ?? "?"} domain={domain} size={28} />
             <Link
               href={`/companies/${event.companyId}`}
               onClick={(e) => e.stopPropagation()}

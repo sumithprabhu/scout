@@ -20,7 +20,7 @@ import { FilterBar } from "@/components/feed/FilterBar";
 import { StatusPill } from "@/components/ui/Pill";
 import { FeedSkeleton, EmptyState, Skeleton } from "@/components/ui/States";
 import { PAGE_TYPE_LABELS } from "@/lib/ui/signals";
-import { hostPath } from "@/lib/ui/format";
+import { hostPath, domainOf } from "@/lib/ui/format";
 
 export default function CompanyDetailPage() {
   const params = useParams<{ id: string }>();
@@ -140,7 +140,7 @@ export default function CompanyDetailPage() {
                 )}
                 <div className="space-y-3">
                   {filtered.map((e, i) => (
-                    <SignalCard key={e.signalEventId} event={e} index={i} />
+                    <SignalCard key={e.signalEventId} event={e} index={i} domain={domainOf(company.rootUrl)} />
                   ))}
                 </div>
               </>

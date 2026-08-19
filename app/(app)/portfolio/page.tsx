@@ -4,7 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { fetchCompanies, fetchGlobalEvents, type CompanyDTO, type SignalEventDTO } from "@/lib/ui/api";
-import { Avatar } from "@/components/ui/Avatar";
+import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { SignalPill } from "@/components/ui/Pill";
 import { Sparkline } from "@/components/company/Sparkline";
 import { EmptyState, Skeleton } from "@/components/ui/States";
@@ -113,7 +113,7 @@ export default function PortfolioPage() {
               className="grid w-full grid-cols-[1.6fr_0.8fr_1fr_2fr] items-center gap-4 border-b border-hairline-light px-5 py-3.5 text-left transition-colors last:border-b-0 hover:bg-card-2"
             >
               <div className="flex items-center gap-3">
-                <Avatar name={r.company.name} size={32} />
+                <CompanyLogo name={r.company.name} url={r.company.rootUrl} size={32} />
                 <div className="min-w-0">
                   <div className="truncate text-sm font-semibold text-ink">{r.company.name}</div>
                   <div className="truncate text-xs text-ink-muted">{r.events.length} signal{r.events.length === 1 ? "" : "s"}</div>

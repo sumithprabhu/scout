@@ -2,26 +2,29 @@
 
 import Link from "next/link";
 import { SIGNAL_ORDER, signalStyle } from "@/lib/ui/signals";
-import { Avatar } from "@/components/ui/Avatar";
-import type { SignalEventDTO } from "@/lib/ui/api";
+import { CompanyLogo } from "@/components/ui/CompanyLogo";
+import { domainOf } from "@/lib/ui/format";
+import type { SignalEventDTO, CompanyDTO } from "@/lib/ui/api";
 
 /**
  * The feed's right rail — the same "This week" summary the landing product mock
  * carried: a headline count, a per-signal distribution, and the most-active
  * company. Sticky on large screens; hidden below lg so the feed goes full-width.
  */
-export function InsightRail({ events }: { events: SignalEventDTO[] }) {
+export function InsightRail({ events, companies = [] }: { events: SignalEventDTO[]; companies?: CompanyDTO[] }) {
   const total = events.length;
   const counts: Record<string, number> = {};
   for (const e of events) counts[e.signalType] = (counts[e.signalType] ?? 0) + 1;
   const present = SIGNAL_ORDER.filter((t) => (counts[t] ?? 0) > 0);
 
-  const byCompany = new Map<string, number>();
+  const domainById = new Map(companies.map((c) => [c.companyId, domainOf(c.rootUrl)] as const));
+  const byCompany = new Map<string, { name: string; n: number }>();
   for (const e of events) {
-    const name = e.companyName ?? "Unknown";
-    byCompany.set(name, (byCompany.get(name) ?? 0) + 1);
+    const prev = byCompany.get(e.companyId) ?? { name: e.companyName ?? "Unknown", n: 0 };
+    prev.n += 1;
+    byCompany.set(e.companyId, prev);
   }
-  const top = [...byCompany.entries()].sort((a, b) => b[1] - a[1]).slice(0, 3);
+  const top = [...byCompany.entries()].sort((a, b) => b[1].n - a[1].n).slice(0, 3);
 
   return (
     <aside className="sticky top-24 hidden w-[236px] shrink-0 lg:block">
@@ -56,9 +59,9 @@ export function InsightRail({ events }: { events: SignalEventDTO[] }) {
         <div className="mt-4 rounded-2xl border border-hairline-light bg-card p-4 shadow-card">
           <div className="text-[10.5px] font-bold uppercase tracking-wider text-faint">Most active</div>
           <div className="mt-2.5 space-y-2.5">
-            {top.map(([name, n]) => (
-              <div key={name} className="flex items-center gap-2.5">
-                <Avatar name={name} size={24} />
+            {top.map(([id, { name, n }]) => (
+              <div key={id} className="flex items-center gap-2.5">
+                <CompanyLogo name={name} domain={domainById.get(id)} size={24} />
                 <span className="truncate text-[13px] font-semibold text-ink">{name}</span>
                 <span className="ml-auto shrink-0 text-[12px] text-faint tabular-nums">{n}</span>
               </div>

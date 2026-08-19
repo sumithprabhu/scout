@@ -7,6 +7,7 @@ import { SignalCard } from "@/components/feed/SignalCard";
 import { FilterBar } from "@/components/feed/FilterBar";
 import { InsightRail } from "@/components/feed/InsightRail";
 import { FeedSkeleton, EmptyState } from "@/components/ui/States";
+import { domainOf } from "@/lib/ui/format";
 
 export default function FeedPage() {
   const [events, setEvents] = useState<SignalEventDTO[] | null>(null);
@@ -34,6 +35,12 @@ export default function FeedPage() {
     for (const e of events ?? []) c[e.signalType] = (c[e.signalType] ?? 0) + 1;
     return c;
   }, [events]);
+
+  const domainById = useMemo(() => {
+    const m = new Map<string, string | undefined>();
+    for (const c of companies) m.set(c.companyId, domainOf(c.rootUrl));
+    return m;
+  }, [companies]);
 
   const filtered = useMemo(() => {
     return (events ?? []).filter(
@@ -112,12 +119,12 @@ export default function FeedPage() {
               ) : (
                 <div className="space-y-3.5">
                   {filtered.map((e, i) => (
-                    <SignalCard key={e.signalEventId} event={e} index={i} />
+                    <SignalCard key={e.signalEventId} event={e} index={i} domain={domainById.get(e.companyId)} />
                   ))}
                 </div>
               )}
             </div>
-            <InsightRail events={events} />
+            <InsightRail events={events} companies={companies} />
           </div>
         </>
       )}

@@ -4,7 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { Plus, Rss, LayoutGrid, Menu, X } from "lucide-react";
-import { Avatar } from "@/components/ui/Avatar";
+import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { fetchCompanies, type CompanyDTO } from "@/lib/ui/api";
 
 /**
@@ -78,7 +78,7 @@ function SidebarContent({ pathname, companies }: { pathname: string; companies: 
                     active ? "bg-mint font-semibold text-ink" : "text-muted hover:bg-mint/60 hover:text-ink"
                   }`}
                 >
-                  <Avatar name={c.name} size={22} />
+                  <CompanyLogo name={c.name} url={c.rootUrl} size={22} />
                   <span className="truncate">{c.name}</span>
                 </Link>
               );
