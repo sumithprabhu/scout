@@ -68,8 +68,12 @@ export default function FeedPage() {
             </span>
           )}
         </div>
-        {events && events.length > 0 && (
-          <div className="mt-4 -mb-1">
+      </div>
+
+      {/* body: only the center list scrolls */}
+      <div className="flex min-h-0 flex-1 overflow-hidden">
+        <div className="min-w-0 flex-1 overflow-y-auto px-6 py-6 lg:px-10">
+          {events && events.length > 0 && (
             <FilterBar
               activeSignal={activeSignal}
               onSignal={setActiveSignal}
@@ -78,13 +82,8 @@ export default function FeedPage() {
               onCompany={setActiveCompany}
               counts={counts}
             />
-          </div>
-        )}
-      </div>
+          )}
 
-      {/* body: only the center list scrolls */}
-      <div className="flex min-h-0 flex-1 overflow-hidden">
-        <div className="min-w-0 flex-1 overflow-y-auto px-6 py-6 lg:px-10">
           {error && (
             <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">
               Couldn’t load the feed: {error}
