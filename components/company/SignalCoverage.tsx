@@ -1,14 +1,15 @@
 "use client";
 
+import { useState } from "react";
+import { ChevronDown, Radar } from "lucide-react";
 import { CATALOG, GROUP_ORDER, TOTAL_SIGNALS, type CatalogEntry } from "@/lib/ui/catalog";
 
 /**
- * The full 35-signal coverage board for a company. Every signal Scout watches is
- * shown, grouped by theme. A signal the shipped classifier produces ("live")
- * lights up in its accent color with a detected-count badge and is clickable to
- * filter the history below; the rest read as "monitoring" — honest about what's
- * tracked vs. what has actually fired. This is where the 35-signal taxonomy the
- * landing advertises becomes concrete, per company.
+ * A company's signal coverage. What matters is what has actually FIRED, so the
+ * active signals (the ones the classifier has produced for this company) lead; the
+ * remaining signals Scout monitors but hasn't seen change are tucked into a toggle
+ * — visible when you want the full picture, out of the way when they'd just be a
+ * wall of "nothing yet."
  */
 export function SignalCoverage({
   counts,
@@ -19,56 +20,81 @@ export function SignalCoverage({
   activeSignal: string | null;
   onSelect: (core: string | null) => void;
 }) {
-  const liveCount = CATALOG.filter((e) => e.core && (counts[e.core] ?? 0) > 0).length;
+  const [showAll, setShowAll] = useState(false);
+
+  const active = CATALOG.filter((e) => e.core && (counts[e.core] ?? 0) > 0);
+  const monitored = CATALOG.filter((e) => !(e.core && (counts[e.core] ?? 0) > 0));
 
   return (
     <section>
-      <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
-        <div>
-          <h2 className="text-lg font-semibold tracking-tight text-ink">Signal coverage</h2>
-          <p className="mt-1 text-sm text-ink-muted">
-            Scout watches {TOTAL_SIGNALS} kinds of public change on this company.{" "}
-            <span className="font-medium text-ink">{liveCount} active</span> right now.
-          </p>
-        </div>
-        <div className="flex items-center gap-4 text-xs text-ink-muted">
-          <span className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 rounded-full bg-teal" /> Active
-          </span>
-          <span className="flex items-center gap-1.5">
-            <span className="relative inline-block h-2 w-2 rounded-full bg-ink/25">
-              <span className="absolute inset-0 animate-ping rounded-full bg-ink/20" />
-            </span>{" "}
-            Monitoring
-          </span>
-        </div>
+      <div className="mb-4">
+        <h2 className="text-lg font-semibold tracking-tight text-ink">Signal coverage</h2>
+        <p className="mt-1 text-sm text-ink-muted">
+          Scout watches {TOTAL_SIGNALS} kinds of public change on this company.{" "}
+          <span className="font-medium text-ink">{active.length} active</span> right now.
+        </p>
       </div>
 
-      <div className="space-y-6">
-        {GROUP_ORDER.map((group) => {
-          const entries = CATALOG.filter((e) => e.group === group);
-          return (
-            <div key={group}>
-              <div className="mb-2.5 flex items-center gap-2">
-                <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{group}</h3>
-                <span className="h-px flex-1 bg-hairline-light" />
-                <span className="text-[11px] text-ink-muted/70">{entries.length}</span>
-              </div>
-              <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
-                {entries.map((e) => (
-                  <CoverageCard
-                    key={e.name}
-                    entry={e}
-                    count={e.core ? counts[e.core] ?? 0 : 0}
-                    active={!!e.core && activeSignal === e.core}
-                    onSelect={onSelect}
-                  />
-                ))}
-              </div>
+      {active.length > 0 ? (
+        <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+          {active.map((e) => (
+            <CoverageCard
+              key={e.name}
+              entry={e}
+              count={counts[e.core!] ?? 0}
+              active={activeSignal === e.core}
+              onSelect={onSelect}
+            />
+          ))}
+        </div>
+      ) : (
+        <div className="flex items-center gap-3 rounded-2xl border border-dashed border-hairline bg-card-2/50 px-5 py-6 text-sm text-ink-muted">
+          <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-mint text-purple-deep">
+            <Radar size={17} />
+          </span>
+          No changes have fired yet. Scout is watching {TOTAL_SIGNALS} kinds of public change and will surface them here the moment they happen.
+        </div>
+      )}
+
+      {/* monitored signals — collapsed by default */}
+      {monitored.length > 0 && (
+        <div className="mt-4">
+          <button
+            onClick={() => setShowAll((v) => !v)}
+            className="flex w-full items-center gap-2 rounded-xl border border-hairline-light bg-card px-4 py-2.5 text-sm font-semibold text-ink-muted shadow-card transition-colors hover:text-ink"
+          >
+            <span className="relative flex h-2 w-2 items-center justify-center">
+              <span className="h-1.5 w-1.5 rounded-full bg-ink/25" />
+              <span className="absolute inset-0 animate-ping rounded-full bg-ink/15" />
+            </span>
+            {showAll ? "Hide" : "Show"} {monitored.length} signals Scout is monitoring
+            <ChevronDown size={16} className={`ml-auto transition-transform ${showAll ? "rotate-180" : ""}`} />
+          </button>
+
+          {showAll && (
+            <div className="mt-4 space-y-6">
+              {GROUP_ORDER.map((group) => {
+                const entries = monitored.filter((e) => e.group === group);
+                if (entries.length === 0) return null;
+                return (
+                  <div key={group}>
+                    <div className="mb-2.5 flex items-center gap-2">
+                      <h3 className="text-[11px] font-semibold uppercase tracking-wider text-ink-muted">{group}</h3>
+                      <span className="h-px flex-1 bg-hairline-light" />
+                      <span className="text-[11px] text-ink-muted/70">{entries.length}</span>
+                    </div>
+                    <div className="grid gap-2.5 sm:grid-cols-2 lg:grid-cols-3">
+                      {entries.map((e) => (
+                        <CoverageCard key={e.name} entry={e} count={0} active={false} onSelect={onSelect} />
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
             </div>
-          );
-        })}
-      </div>
+          )}
+        </div>
+      )}
     </section>
   );
 }
@@ -100,7 +126,6 @@ function CoverageCard({
       }`}
       style={live ? { borderColor: active ? entry.accent : `${entry.accent}55` } : undefined}
     >
-      {/* accent wash on live cards */}
       {live && (
         <div
           className="pointer-events-none absolute inset-x-0 top-0 h-full opacity-[0.06]"
@@ -119,11 +144,9 @@ function CoverageCard({
           <Icon size={15} strokeWidth={2} />
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-1.5">
-            <h4 className={`truncate text-[13.5px] font-semibold ${live ? "text-ink" : "text-ink/55"}`}>
-              {entry.name}
-            </h4>
-          </div>
+          <h4 className={`truncate text-[13.5px] font-semibold ${live ? "text-ink" : "text-ink/55"}`}>
+            {entry.name}
+          </h4>
         </div>
         {live ? (
           <span
