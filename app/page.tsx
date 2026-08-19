@@ -43,12 +43,34 @@ export default function ScoutLanding() {
 }
 
 /* ------------------------------- navbar ------------------------------- */
+/* Scout mark — three ascending bars (75% · 90% · 80%), the "scout salute" */
+function ScoutMark({ size = 26, variant = "solid" }: { size?: number; variant?: string }) {
+  const V = "#6a3df0", T = "#24eca0", C = "#F97316", B = "#6E56F0", L = "#9F8CFF";
+  let f: [string, string, string] = [V, V, V];
+  if (variant === "teal") f = [V, T, V];
+  else if (variant === "coral") f = [V, C, V];
+  else if (variant === "multi") f = [V, T, C];
+  else if (variant === "gradient") f = [`url(#sg-${size})`, `url(#sg-${size})`, `url(#sg-${size})`];
+  return (
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      {variant === "gradient" && (
+        <defs>
+          <linearGradient id={`sg-${size}`} x1="0" y1="0" x2="1" y2="0">
+            <stop offset="0%" stopColor={V} /><stop offset="50%" stopColor={B} /><stop offset="100%" stopColor={L} />
+          </linearGradient>
+        </defs>
+      )}
+      <rect x="3.5" y="6" width="4" height="15" rx="2" fill={f[0]} />
+      <rect x="10" y="3" width="4" height="18" rx="2" fill={f[1]} />
+      <rect x="16.5" y="5" width="4" height="16" rx="2" fill={f[2]} />
+    </svg>
+  );
+}
+
 function Wordmark() {
   return (
     <Link href="/" className="inline-flex items-center gap-2" aria-label={`${BRAND} home`}>
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-white">
-        <RadarIcon size={16} />
-      </span>
+      <ScoutMark size={24} />
       <span className="text-[20px] font-extrabold tracking-tight text-ink">{BRAND}</span>
     </Link>
   );
@@ -994,7 +1016,7 @@ function Footer() {
       <div className="mx-auto max-w-[1240px] px-5 lg:px-8">
         <div className="flex flex-col gap-6 border-t border-ink/10 py-10 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-center gap-2">
-            <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink text-white"><RadarIcon size={16} /></span>
+            <ScoutMark size={22} />
             <span className="text-[18px] font-extrabold tracking-tight text-ink">{BRAND}</span>
             <span className="text-[14px] text-muted">· Company intelligence</span>
           </div>

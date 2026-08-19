@@ -2,9 +2,9 @@ import type { ReactNode } from "react";
 import "./globals.css";
 
 export const metadata = {
-  title: "Radar — Company Intelligence",
+  title: "Scout — Company Intelligence",
   description:
-    "Track public signals about any company — pricing, hiring, positioning, compliance, integrations, changelog — classified and summarized by AI as they change.",
+    "Watch any company. Miss nothing. Scout tracks a company's public pages — pricing, hiring, positioning, compliance, integrations, changelog — and tells you in one line what changed, the moment it changes.",
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {
