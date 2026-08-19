@@ -27,7 +27,7 @@ export function DiffView({ diff, signalType }: { diff?: DiffDetail; signalType: 
           className="grid grid-cols-[minmax(90px,150px)_1fr] gap-3 border-b border-hairline-light px-3 py-2.5 last:border-b-0"
         >
           <div className="truncate font-mono text-[11px] leading-5 text-ink-muted" title={c.path}>
-            {c.path || "—"}
+            {c.path || "/"}
           </div>
           <div className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[13px]">
             {c.op === "added" ? (

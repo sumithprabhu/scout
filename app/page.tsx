@@ -86,7 +86,7 @@ function Navbar() {
       {/* announcement bar (dismissible) */}
       {showBar && (
         <div className="relative bg-purple px-10 py-2.5 text-center text-[13.5px] font-medium text-ink">
-          <span className="font-bold">Now in beta — free.</span>
+          <span className="font-bold">Now in beta. Free.</span>
           <span className="ml-2 hidden sm:inline">Track your first company in under a minute.</span>
           <button
             onClick={() => setShowBar(false)}
@@ -156,7 +156,7 @@ function Hero({ events }: { events: SignalEventDTO[] }) {
           Watch any company. Miss nothing.
         </h1>
         <p className="mx-auto mt-6 max-w-lg animate-fade-up text-[18px] font-medium leading-relaxed text-ink/80 [animation-delay:80ms] lg:text-[20px]">
-          Scout tracks a company’s public pages and tells you — in one line — every time something meaningful changes.
+          Scout tracks a company’s public pages and tells you, in one line, every time something meaningful changes.
         </p>
 
         <form onSubmit={go} className="mx-auto mt-10 max-w-xl animate-fade-up rounded-pill bg-white/50 p-1.5 [animation-delay:140ms]">
@@ -498,7 +498,7 @@ function FeedRow({ event, open, onToggle }: { event: SignalEventDTO; open: boole
           <div className="space-y-1.5">
             {changes.slice(0, 4).map((c, i) => (
               <div key={i} className="flex flex-wrap items-center gap-x-2 gap-y-1 text-[12.5px]">
-                <span className="font-mono text-[11px] text-faint">{c.path || "—"}</span>
+                <span className="font-mono text-[11px] text-faint">{c.path || "/"}</span>
                 {c.op === "changed" ? (
                   <>
                     <span className="font-mono text-[#B91C1C]/80 line-through">{renderValue(c.oldValue)}</span>
@@ -534,7 +534,7 @@ const PANELS: Panel[] = [
   {
     tab: "One feed",
     title: "See the whole company, not one metric.",
-    desc: "Pricing, hiring, positioning, compliance, integrations, changelog — every public signal in a single feed, with the context of what it means.",
+    desc: "Pricing, hiring, positioning, compliance, integrations, changelog. Every public signal in a single feed, with the context of what it means.",
     cta: ["Open the feed", "/feed"],
     bg: "#bf8efd",
     Icon: LayoutGrid,
@@ -543,7 +543,7 @@ const PANELS: Panel[] = [
   {
     tab: "Plain English",
     title: "One line. Not a diff.",
-    desc: "Every change is diffed, then summarized in plain English by AI — read what happened in seconds, not a raw diff to decode.",
+    desc: "Every change is diffed, then summarized in plain English by AI, so you read what happened in seconds, not a raw diff to decode.",
     cta: null,
     bg: "#d9ece4",
     Icon: Sparkles,
@@ -552,7 +552,7 @@ const PANELS: Panel[] = [
   {
     tab: "On autopilot",
     title: "Set it once. It runs itself.",
-    desc: "Point Scout at a domain and it discovers the right pages, scrapes them on a schedule, and pushes new changes to your feed — no dashboards to babysit.",
+    desc: "Point Scout at a domain and it discovers the right pages, scrapes them on a schedule, and pushes new changes to your feed, with no dashboards to babysit.",
     cta: ["Track a company", "/add"],
     bg: "#ffffff",
     Icon: RadarIcon,
@@ -660,7 +660,7 @@ function DiffGraphic() {
         </div>
         <div className="h-2 w-2/3 rounded-full bg-purple-deep/10" />
       </div>
-      <p className="mt-3 text-[12px] leading-snug text-ink/80">Vercel raised the Pro plan — in one line, not a raw diff.</p>
+      <p className="mt-3 text-[12px] leading-snug text-ink/80">Vercel raised the Pro plan, in one line, not a raw diff.</p>
     </div>
   );
 }
@@ -746,7 +746,7 @@ function DarkBand({ events }: { events: SignalEventDTO[] }) {
           <div className="text-white">
             <h2 className="text-display font-extrabold leading-none">Signal,<br /> not noise.</h2>
             <p className="mt-6 max-w-md text-[15.5px] leading-relaxed text-white/70">
-              Scout filters out formatting churn and reflows. You only hear about changes that actually mean something — a price move, a new cert, a hiring surge.
+              Scout filters out formatting churn and reflows. You only hear about changes that actually mean something, like a price move, a new cert, or a hiring surge.
             </p>
             <Link href="/add" className="mt-7 inline-flex rounded-pill border border-white/40 px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">Start tracking free</Link>
           </div>
@@ -798,7 +798,7 @@ function DarkBand({ events }: { events: SignalEventDTO[] }) {
 /* ------------------------- signal types (two-row marquee) ------------------------- */
 const CATEGORIES: { name: string; desc: string }[] = [
   { name: "Price Changes", desc: "A plan’s price goes up or down." },
-  { name: "Plan & Bundle Changes", desc: "What’s included in each tier shifts — add-ons, bundling, new or removed plans." },
+  { name: "Plan & Bundle Changes", desc: "What’s included in each tier shifts: add-ons, bundling, new or removed plans." },
   { name: "Feature Moves", desc: "A feature gets added, removed, or pushed behind a pricier tier." },
   { name: "Messaging & Positioning Shifts", desc: "Homepage headline, tagline, or “who it’s for” changes." },
   { name: "Release Speed & Focus", desc: "How often they ship, and what themes they’re shipping around." },
@@ -806,7 +806,7 @@ const CATEGORIES: { name: string; desc: string }[] = [
   { name: "New Integrations", desc: "Tools they now connect with." },
   { name: "Customer Wins & Losses", desc: "New case studies, review-score shifts, customer-count changes." },
   { name: "Content Themes", desc: "What topics their blog and resources are pushing." },
-  { name: "Trust Badges", desc: "New or dropped certifications — SOC 2, ISO, HIPAA, GDPR." },
+  { name: "Trust Badges", desc: "New or dropped certifications: SOC 2, ISO, HIPAA, GDPR." },
   { name: "New Markets", desc: "Countries, languages, or regions they now serve." },
   { name: "Public Roadmap Moves", desc: "What they’ve promised is “coming soon.”" },
   { name: "Developer Platform Changes", desc: "New API endpoints, SDKs, or webhook support." },
@@ -817,7 +817,7 @@ const CATEGORIES: { name: string; desc: string }[] = [
   { name: "Policy Changes", desc: "Terms of Service, privacy policy, or cancellation terms." },
   { name: "Event Calendar", desc: "New webinars or events, and who they’re targeting." },
   { name: "Tech Stack Signals", desc: "What technologies they mention in job posts or docs." },
-  { name: "Competitor Callouts", desc: "When they start — or stop — naming you on a comparison page." },
+  { name: "Competitor Callouts", desc: "When they start or stop naming you on a comparison page." },
   { name: "Trial & Sign-up Friction", desc: "Trial length, credit-card requirement, free-plan limits." },
   { name: "Logo Wall Changes", desc: "Customer logos added or dropped from the homepage." },
   { name: "Press Mentions", desc: "New “as seen in” media logos." },
@@ -886,7 +886,7 @@ function SignalTypes() {
         </p>
         <h2 className="mt-4 text-section font-extrabold uppercase text-ink">35 kinds of change.<br /> One feed.</h2>
         <p className="mt-5 max-w-xl text-[16px] leading-relaxed text-muted">
-          From a $2 price bump to a new SOC 2 badge, Scout classifies 35 kinds of public change — so nothing a competitor does in the open slips past you.
+          From a $2 price bump to a new SOC 2 badge, Scout classifies 35 kinds of public change, so nothing a competitor does in the open slips past you.
         </p>
       </div>
 
@@ -911,7 +911,7 @@ function SignalTypes() {
 /* ------------------------- stats ------------------------- */
 const STATS: { value: string; label: string; caption: string; Icon: LucideIcon }[] = [
   { value: "6", label: "Signal types, one feed", caption: "More signal types means fewer blind spots.", Icon: Layers },
-  { value: "5", label: "Page types, auto-found", caption: "Pricing, careers, trust and more — discovered for you, no URL hunting.", Icon: Map },
+  { value: "5", label: "Page types, auto-found", caption: "Pricing, careers, trust and more, discovered for you with no URL hunting.", Icon: Map },
   { value: "1-line", label: "Plain-English summary", caption: "Every change explained in a sentence, not a raw diff.", Icon: Sparkles },
   { value: "0", label: "Manual checks", caption: "Scout watches on a schedule, so you never have to look.", Icon: Timer },
 ];

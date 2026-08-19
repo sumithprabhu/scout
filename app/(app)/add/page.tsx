@@ -122,7 +122,7 @@ function AddCompanyInner() {
               autoFocus
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Company name or URL — e.g. linear.app"
+              placeholder="Company name or URL, e.g. linear.app"
               className="flex-1 bg-transparent text-[15px] text-ink placeholder:text-ink-muted/70 outline-none"
             />
             <button type="submit" className="rounded-lg bg-brand px-4 py-1.5 text-sm font-semibold text-white disabled:opacity-50" disabled={!input.trim()}>
@@ -162,7 +162,7 @@ function AddCompanyInner() {
             }
           />
           <p className="px-1 text-xs text-ink-muted">
-            Discovery runs a real Bright Data scrape in the background — this can take up to a minute.
+            Discovery runs a real Bright Data scrape in the background. This can take up to a minute.
           </p>
         </div>
       )}
@@ -226,7 +226,7 @@ function ConfirmStep({
         <div className="rounded-2xl border border-amber-300 bg-amber-50 p-5">
           {suggestManual && (
             <p className="mb-3 text-sm text-amber-800">
-              {data.discovery.message ?? "Automatic discovery came up short — add the pages you want to track by hand below."}
+              {data.discovery.message ?? "Automatic discovery came up short. Add the pages you want to track by hand below."}
             </p>
           )}
           {!suggestManual && missing.length > 0 && (

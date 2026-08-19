@@ -121,7 +121,7 @@ export default function PortfolioPage() {
               </div>
               <ScoreBadge score={r.score} />
               <div className="h-9">
-                {r.events.length > 0 ? <Sparkline data={r.series} height={36} /> : <span className="text-xs text-ink-muted">—</span>}
+                {r.events.length > 0 ? <Sparkline data={r.series} height={36} /> : <span className="text-xs text-ink-muted">No activity</span>}
               </div>
               <div className="min-w-0">
                 {r.last ? (

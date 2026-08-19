@@ -66,7 +66,7 @@ export function InsightCard({
       {/* supporting stats */}
       <div className="mt-5 flex gap-6 border-t border-hairline-light pt-4 text-sm">
         <Stat label="Total signals" value={String(events.length)} />
-        <Stat label="Last change" value={last ? timeAgo(last.detectedAt) : "—"} />
+        <Stat label="Last change" value={last ? timeAgo(last.detectedAt) : "Never"} />
         <Stat
           label="High severity"
           value={String(events.filter((e) => e.severity === "high").length)}

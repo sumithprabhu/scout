@@ -48,7 +48,7 @@ export default function FeedPage() {
         <div>
           <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink">Signal Feed</h1>
           <p className="mt-1.5 text-[15px] text-ink-muted">
-            Every public change across the companies you track — classified and summarized as it happens.
+            Every public change across the companies you track, classified and summarized as it happens.
           </p>
         </div>
         {events && events.length > 0 && (
