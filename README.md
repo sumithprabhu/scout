@@ -1,104 +1,114 @@
-# Job Matcher — backend
+# Scout — company intelligence
 
-Scrapes job listings from ATS boards (Greenhouse, Lever, Workday) and Naukri via
-**Bright Data Scraper Studio**, parses each JD with Claude to extract the real
-required tech stack, and matches it against a user's skills — surfacing only
-genuinely relevant jobs and telling the user **exactly what's missing** on
-near-misses instead of making them read every JD.
+Watch any company. Miss nothing.
 
-Backend only (Next.js API routes). No UI yet.
+Scout tracks a company's public pages — pricing, hiring, positioning, compliance,
+integrations, changelog — scrapes them on a schedule with **Bright Data Scraper
+Studio**, diffs each new snapshot against the last, and uses **Amazon Nova**
+(Bedrock) to classify what changed and write a one-line, human-readable summary.
+The signal lands in a live feed, so you learn what a competitor did the day they
+do it — not next quarter.
 
 ## Stack
 
-- **Next.js 14** (App Router, TypeScript) — API routes under `/app/api`
+- **Next.js 14** (App Router, TypeScript) — API routes + UI
 - **MongoDB + Mongoose** — storage (`/models`)
-- **Bright Data CLI** (`@brightdata/cli`) — four custom Scraper Studio collectors (`/scrapers`)
-- **Amazon Nova on AWS Bedrock** (`@aws-sdk/client-bedrock-runtime`, Converse API) — JD skill extraction
-- MongoDB-based per-identity daily rate limiter (no auth yet)
+- **Bright Data Scraper Studio** (`@brightdata/cli`) — custom, purpose-built collectors (`/lib/scrapers`)
+- **Amazon Nova on AWS Bedrock** (Converse API) — page classification, diff classification, summaries
+- **Tailwind CSS + Framer Motion** — the light, interactive landing + app UI
+- MongoDB-backed per-identity daily rate limiter (no heavy auth yet)
 
-## Architecture (the pipeline)
+## How it works
 
 ```
- /api/scrape          /api/parse           /api/match            /api/jobs
- ──────────           ──────────           ──────────            ─────────
- Bright Data      →   Nova extracts    →   overlap scoring   →   sorted by fit,
- collector run        requiredSkills,      matched vs missing    missing skills
- → JobListing         niceToHave,          → MatchResult         shown for
-                      seniority                                  near-misses
-                      → ParsedJD
+add a company            discover pages          watch & diff            classify
+────────────             ──────────────          ────────────            ────────
+POST /api/companies   →  homepage links      →   scheduled scrape    →   Nova classifies
+kicks off discovery      scraped + Nova           → Snapshot (v+1)        the diff, assigns
+                         maps them to the 6       → diff vs previous      severity, writes a
+                         page types              (noise-filtered)         one-line summary
+                                                                          → SignalEvent
 ```
 
-Every source funnels into one `NormalizedJob` shape (`lib/types.ts`), so storage,
-parsing, and matching are all source-agnostic. See `scrapers/README.md` for the
-Scraper Studio build/run design and the per-source rationale.
+Results are delivered **push, not poll**: each collector's scheduled run POSTs to
+`/api/webhook/scrape-result`, which stores the snapshot, diffs, and (if the change
+is meaningful) creates a classified `SignalEvent`.
 
-### Key design decisions (for the demo)
+### Design decisions worth calling out
 
-- **Global-cached Mongo connection** (`lib/db.ts`) — survives dev hot-reload and
-  serverless cold starts instead of leaking connections.
-- **One `NormalizedJob` contract** — the four very different sources never leak
-  their shape past the scraper wrapper.
-- **JD parsing via Amazon Nova (Bedrock Converse)** — a strict-JSON prompt +
-  defensive parsing turns messy JD text into `requiredSkills`/`niceToHave`/
-  seniority. Short/unparseable JDs are flagged low-confidence, never silently
-  matched against garbage. Provider is isolated to `lib/jdParser.ts` behind a
-  stable `parseJD()` signature, so switching models is a one-file change.
-- **Explainable overlap scoring** (`lib/matchEngine.ts`) — required-skill overlap
-  is 85% of the score, nice-to-haves 15% (renormalized when a component is
-  absent). Every number is defensible by pointing at two sets. `missingSkills` is
-  computed explicitly, in the JD's own wording.
-- **Rate limit on `/api/scrape` only** — that's what spends Bright Data credits.
+- **One LLM seam** (`lib/nova/client.ts`): every model call — `classifyPageType`,
+  `classifyDiff`, `summarizeDiff` — routes through one `converseJSON()` helper, so
+  swapping the model is a one-file change. Never throws; a bad call degrades
+  gracefully instead of breaking a pipeline.
+- **Collector registry deduped by URL** (`models/Collector.ts`): a unique index on
+  the normalized URL means two companies sharing a page never pay for two AI
+  builds, and creation is race-safe.
+- **Own the backoff** (`lib/scrapers/collectorQueue.ts`): collector creation is
+  staggered with exponential-backoff-with-jitter on the AI-Flow concurrency cap —
+  which, in practice, surfaces as a malformed 500, so the classifier treats that
+  as retryable too.
+- **Generic, noise-filtered diff** (`lib/diff/computeDiff.ts`): page-type-agnostic
+  and identity-keyed, so reflow/formatting churn is ignored and a reordered list
+  isn't a false signal. Adding a new page type is one enum value + one prompt.
+- **Same-site guard** in discovery — a scraped page URL on a foreign domain is
+  dropped (fail safe, never attribute a competitor's page to the wrong company).
 
-## Setup
+## Getting started
 
 ```bash
 npm install
-cp .env.example .env    # fill MONGODB_URI, AWS creds + BEDROCK_*, BRIGHTDATA_API_KEY
-npx tsx scripts/smoke-db.ts     # verify DB + models
-npx tsx scripts/test-parse.ts   # verify Nova/Bedrock JD parsing (needs AWS creds + model access)
+cp .env.example .env      # MONGODB_URI, AWS creds + BEDROCK_*, BRIGHTDATA_API_KEY, PUBLIC_BASE_URL, WEBHOOK_SECRET
+npm run dev               # http://localhost:3000
+npx tsx scripts/seed-demo.ts   # (optional) real Nova-written demo signals for the feed
 ```
 
-> JD parsing needs an IAM principal with `bedrock:InvokeModel` **and** Nova
-> model access enabled in the Bedrock console (Model access) for `BEDROCK_REGION`.
+Nova needs an IAM principal with `bedrock:InvokeModel` **and** Nova model access
+enabled in the Bedrock console for `BEDROCK_REGION`.
 
-### Bright Data collectors (one-time, ~5-10 min each, spends credits)
+### Bright Data collectors (one-time; building is free, runs spend credit)
 
 ```bash
 npx bdata login
-npx bdata budget                        # confirm auth + credit
-npx tsx scrapers/build-collectors.ts    # builds all four, prints .env lines
+npx tsx scrapers/build-discovery-collector.ts   # builds the reusable discovery collector
 ```
 
-Paste the printed `BRIGHTDATA_COLLECTOR_*` ids into `.env`. See `scrapers/README.md`.
+Paste the printed `BRIGHTDATA_COLLECTOR_DISCOVERY` id into `.env`. Page-type
+collectors are created on demand when you confirm a company's discovered pages.
+
+## Screens
+
+- `/` — landing page (product-forward, interactive)
+- `/feed` — the global signal feed
+- `/portfolio` — all tracked companies, ranked by activity
+- `/companies/:id` — a company's activity, tracked pages, and signal history
+- `/add` — add a company and watch discovery run
 
 ## API
 
-| Method | Route | Body / query | Does |
-|--------|-------|--------------|------|
-| POST | `/api/scrape` | `{source, input, email?}` | Run a collector, store JobListings. Rate-limited. |
-| POST | `/api/parse` | `{limit?}` or `{jobListingId}` | Extract skills from unparsed JDs via Claude → ParsedJD. |
-| POST | `/api/profile` | `{identity, skills[], resumeText?}` | Upsert a user skill profile (no auth yet). |
-| POST | `/api/match` | `{userProfileId, threshold?}` | Score the profile against every ParsedJD → MatchResult. |
-| GET | `/api/jobs` | `?userProfileId=&minFit=&nearMissThreshold=&limit=` | Matched jobs sorted by fit, with missing skills + `nearMiss` flag. |
+| Method | Route | Does |
+|--------|-------|------|
+| POST | `/api/companies` | Add a company, kick off discovery (rate-limited). |
+| GET | `/api/companies/:id/pages` | Discovered pages + a `suggestManualEntry` flag. |
+| POST | `/api/companies/:id/pages` | Manually add or correct a page URL. |
+| GET | `/api/companies/:id/events` | A company's signals, newest first. |
+| GET | `/api/events` | Global feed across all companies, filterable by `signalType`. |
+| POST | `/api/webhook/scrape-result` | Bright Data delivers scheduled-run results here. |
 
-`input` for `/api/scrape` is a company slug (greenhouse/lever), a board URL
-(workday), or a search query (naukri).
+## Verification
 
-## Tests / verification
+Every layer is covered by a script that runs against real infra (Mongo, Nova, HTTP):
 
 ```bash
-npx tsx scripts/smoke-db.ts      # DB connection + all 4 models + dedup index
-npx tsx scripts/test-match.ts    # match engine (pure logic) — scoring + missing skills
-# API integration (needs dev server + a low rate limit):
-PORT=3111 SCRAPE_RATE_LIMIT_PER_DAY=2 npm run dev &
-PORT=3111 npx tsx scripts/test-api.ts   # profile -> match -> jobs -> rate limit
+npx tsx scripts/smoke-intel-db.ts        # schemas, indexes, dedup guards
+npx tsx scripts/test-diff.ts             # diff engine (noise filtering + detection)
+npx tsx scripts/test-collector-queue.ts  # stagger + backoff (deterministic)
+npx tsx scripts/test-ingest-pipeline.ts  # snapshot → diff → classify (real Nova)
+npx tsx scripts/test-intel-api.ts        # every route over real HTTP (needs `next dev`)
 ```
 
-## Known trade-offs
+## Notes
 
-- **Next 14.2.x** carries DoS-class advisories fully patched only in Next 15 (a
-  breaking upgrade). We don't use `next/image`; acceptable for the hackathon.
-- Workday/Naukri collectors return **snippet-level** descriptions (no clean feed);
-  those JDs parse at lower confidence and are flagged accordingly.
-- Skill matching uses a small hand-curated alias table — extend as real scraped
-  data reveals more variants.
+- The landing advertises 35 signal types (the roadmap); the shipped classifier
+  currently produces the 6 core types (pricing, hiring, positioning, compliance,
+  integration, changelog).
+- Beta: free while we build. No auth beyond a simple identity string yet.
