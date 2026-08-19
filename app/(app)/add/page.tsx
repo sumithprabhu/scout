@@ -59,7 +59,7 @@ function AddCompanyInner() {
     setAddStatus("running");
     setErrorMsg(null);
 
-    const res = await addCompany({ url: input.trim(), email: "demo@radar.app", discover: true });
+    const res = await addCompany({ url: input.trim(), email: "demo@scout.app", discover: true });
     if (res.status === 429) {
       setErrorMsg("Daily add limit reached (this triggers real scrape + collector cost). Try again tomorrow or demo with the seeded companies.");
       setPhase("error");
@@ -107,7 +107,7 @@ function AddCompanyInner() {
       <div className="mb-6">
         <h1 className="text-2xl font-semibold tracking-tight text-ink">Track a company</h1>
         <p className="mt-1 text-sm text-ink-muted">
-          Enter a company and Radar discovers its key public pages, then watches them for changes.
+          Enter a company and Scout discovers its key public pages, then watches them for changes.
         </p>
       </div>
 
@@ -149,7 +149,7 @@ function AddCompanyInner() {
           <div className="rounded-2xl border border-hairline bg-elevated/40 px-4 py-3 text-sm text-ink">
             Tracking <span className="font-semibold">{companyName || input}</span>
           </div>
-          <TaskRow status={addStatus} title="Add company to Radar" detail={addStatus === "done" ? "Company created" : "Registering…"} />
+          <TaskRow status={addStatus} title="Add company to Scout" detail={addStatus === "done" ? "Company created" : "Registering…"} />
           <TaskRow
             status={discoverStatus}
             title="Discover public pages"

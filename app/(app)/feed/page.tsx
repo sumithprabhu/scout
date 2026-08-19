@@ -70,7 +70,7 @@ export default function FeedPage() {
         <EmptyState
           icon="📡"
           title="No signals yet"
-          hint="Track a company and Radar will start watching its public pages. New pricing, hiring, compliance, and positioning changes will show up here."
+          hint="Track a company and Scout will start watching its public pages. New pricing, hiring, compliance, and positioning changes will show up here."
           action={
             <Link href="/add" className="rounded-lg bg-brand px-4 py-2 text-sm font-semibold text-white">
               Track your first company

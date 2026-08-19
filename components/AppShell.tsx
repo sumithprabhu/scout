@@ -3,31 +3,36 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import type { ReactNode } from "react";
+import { Plus } from "lucide-react";
 
 /**
- * App chrome: a dark top rail (one step darker than the canvas for subtle
- * layering) with the brand mark, primary nav, and the primary "Track a company"
- * action. Purple is used ONLY here (brand/nav highlight/primary button) — never
- * on data. The workspace below sits on the near-black canvas with a soft glow.
+ * App chrome: a white top rail (hairline border, blurred) carrying the Scout
+ * three-bar mark, primary nav, and the "Track a company" action. Purple is the
+ * brand accent (mark / nav highlight / primary button) — never used on data.
+ * The workspace below sits on the soft canvas with a colored glow, matching the
+ * landing page's light, minty aesthetic.
  */
 const NAV = [
   { href: "/feed", label: "Feed" },
   { href: "/portfolio", label: "Portfolio" },
 ];
 
-function Logo() {
+/** The three ascending bars — Scout's "salute" mark, solid violet. */
+function ScoutMark({ size = 22 }: { size?: number }) {
   return (
-    <Link href="/" className="flex items-center gap-2">
-      <span className="flex h-7 w-7 items-center justify-center rounded-lg bg-brand text-white shadow-[0_2px_10px_-2px_rgba(110,86,240,0.7)]">
-        {/* radar sweep glyph */}
-        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" aria-hidden>
-          <circle cx="12" cy="12" r="9" stroke="white" strokeWidth="1.6" opacity="0.55" />
-          <circle cx="12" cy="12" r="4.5" stroke="white" strokeWidth="1.6" opacity="0.8" />
-          <path d="M12 12L19 7" stroke="white" strokeWidth="1.8" strokeLinecap="round" />
-          <circle cx="12" cy="12" r="1.6" fill="white" />
-        </svg>
-      </span>
-      <span className="text-[15px] font-semibold tracking-tight text-ink">Radar</span>
+    <svg width={size} height={size} viewBox="0 0 24 24" fill="none" aria-hidden>
+      <rect x="3.5" y="6" width="4" height="15" rx="2" fill="#6a3df0" />
+      <rect x="10" y="3" width="4" height="18" rx="2" fill="#6a3df0" />
+      <rect x="16.5" y="5" width="4" height="16" rx="2" fill="#6a3df0" />
+    </svg>
+  );
+}
+
+function Wordmark() {
+  return (
+    <Link href="/" className="flex items-center gap-2" aria-label="Scout home">
+      <ScoutMark size={22} />
+      <span className="text-[17px] font-extrabold tracking-tight text-ink">Scout</span>
     </Link>
   );
 }
@@ -38,7 +43,7 @@ export function AppShell({ children }: { children: ReactNode }) {
     <div className="min-h-screen">
       <header className="sticky top-0 z-40 border-b border-hairline bg-chrome/85 backdrop-blur-xl">
         <div className="mx-auto flex h-14 max-w-6xl items-center gap-6 px-4 sm:px-6">
-          <Logo />
+          <Wordmark />
           <nav className="flex items-center gap-1">
             {NAV.map((item) => {
               const active = pathname === item.href || pathname.startsWith(item.href + "/");
@@ -67,7 +72,7 @@ export function AppShell({ children }: { children: ReactNode }) {
               href="/add"
               className="inline-flex items-center gap-1.5 rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white shadow-[0_2px_12px_-2px_rgba(110,86,240,0.6)] transition-transform hover:-translate-y-px active:translate-y-0"
             >
-              <span className="text-base leading-none">+</span> Track a company
+              <Plus size={15} strokeWidth={2.5} /> Track a company
             </Link>
           </div>
         </div>

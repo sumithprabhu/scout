@@ -79,12 +79,12 @@ export default function PortfolioPage() {
 
   return (
     <div>
-      <div className="mb-6 flex items-end justify-between">
+      <div className="mb-8 flex items-end justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight text-ink">Portfolio</h1>
-          <p className="mt-1 text-sm text-ink-muted">Every company you track, ranked by recent activity.</p>
+          <h1 className="text-[28px] font-semibold tracking-[-0.02em] text-ink">Portfolio</h1>
+          <p className="mt-1.5 text-[15px] text-ink-muted">Every company you track, ranked by recent activity.</p>
         </div>
-        <Link href="/add" className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white">+ Track a company</Link>
+        <Link href="/add" className="rounded-lg bg-brand px-3.5 py-1.5 text-sm font-semibold text-white shadow-[0_2px_12px_-2px_rgba(110,86,240,0.6)]">+ Track a company</Link>
       </div>
 
       {error && <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">Couldn’t load portfolio: {error}</div>}

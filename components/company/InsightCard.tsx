@@ -16,15 +16,22 @@ export function InsightCard({
   name,
   rootUrl,
   events,
+  pagesCount,
+  since,
 }: {
   name: string;
   rootUrl: string;
   events: SignalEventDTO[];
+  pagesCount?: number;
+  since?: string;
 }) {
   const score = activityScore(events);
   const series = eventFrequencySeries(events, 14);
   const last = lastEvent(events);
   const scoreColor = score >= 60 ? "#F97316" : score >= 30 ? "#EAB308" : "#8B78FF";
+  const sinceLabel = since
+    ? new Date(since).toLocaleDateString(undefined, { month: "short", year: "numeric" })
+    : null;
 
   return (
     <div className="rounded-2xl border border-hairline-light bg-card p-6 shadow-card sm:p-7">
@@ -64,13 +71,15 @@ export function InsightCard({
       </div>
 
       {/* supporting stats */}
-      <div className="mt-5 flex gap-6 border-t border-hairline-light pt-4 text-sm">
+      <div className="mt-5 flex flex-wrap gap-x-8 gap-y-4 border-t border-hairline-light pt-4 text-sm">
         <Stat label="Total signals" value={String(events.length)} />
         <Stat label="Last change" value={last ? timeAgo(last.detectedAt) : "Never"} />
         <Stat
           label="High severity"
           value={String(events.filter((e) => e.severity === "high").length)}
         />
+        {pagesCount != null && <Stat label="Tracked pages" value={String(pagesCount)} />}
+        {sinceLabel && <Stat label="Watching since" value={sinceLabel} />}
       </div>
     </div>
   );

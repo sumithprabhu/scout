@@ -41,7 +41,7 @@ export function avatarColor(seed: string): { bg: string; text: string } {
 
 /** Render a scraped value (string | number | object) compactly for the diff view. */
 export function renderValue(v: unknown): string {
-  if (v == null) return "—";
+  if (v == null) return "n/a";
   if (typeof v === "string") return v;
   if (typeof v === "number" || typeof v === "boolean") return String(v);
   try {

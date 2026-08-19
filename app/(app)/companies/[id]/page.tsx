@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useParams } from "next/navigation";
+import { ArrowLeft } from "lucide-react";
 import {
   fetchCompanyEvents,
   fetchCompanyPages,
@@ -12,6 +13,8 @@ import {
   type CompanyDTO,
 } from "@/lib/ui/api";
 import { InsightCard } from "@/components/company/InsightCard";
+import { SignalMix } from "@/components/company/SignalMix";
+import { SignalCoverage } from "@/components/company/SignalCoverage";
 import { SignalCard } from "@/components/feed/SignalCard";
 import { FilterBar } from "@/components/feed/FilterBar";
 import { StatusPill } from "@/components/ui/Pill";
@@ -28,6 +31,7 @@ export default function CompanyDetailPage() {
   const [pages, setPages] = useState<TrackedPageDTO[] | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [activeSignal, setActiveSignal] = useState<string | null>(null);
+  const historyRef = useRef<HTMLElement | null>(null);
 
   useEffect(() => {
     let alive = true;
@@ -58,32 +62,51 @@ export default function CompanyDetailPage() {
     [events, activeSignal]
   );
 
+  function selectSignal(core: string | null) {
+    setActiveSignal(core);
+    if (core) requestAnimationFrame(() => historyRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }));
+  }
+
   if (error) {
     return <div className="rounded-xl border border-red-300 bg-red-50 px-4 py-3 text-sm text-red-700">Couldn’t load company: {error}</div>;
   }
 
   return (
     <div>
-      <Link href="/feed" className="mb-4 inline-block text-sm text-ink-muted hover:text-ink">← Feed</Link>
+      <Link href="/portfolio" className="mb-4 inline-flex items-center gap-1.5 text-sm text-ink-muted transition-colors hover:text-ink">
+        <ArrowLeft size={15} /> Portfolio
+      </Link>
 
       {!company || !events ? (
         <div className="space-y-6">
-          <Skeleton className="h-40 w-full !bg-black/[0.05]" />
+          <Skeleton className="h-44 w-full !bg-black/[0.05]" />
+          <Skeleton className="h-24 w-full !bg-black/[0.05]" />
           <FeedSkeleton rows={3} />
         </div>
       ) : (
-        <>
-          <InsightCard name={company.name} rootUrl={company.rootUrl} events={events} />
+        <div className="space-y-8">
+          <InsightCard
+            name={company.name}
+            rootUrl={company.rootUrl}
+            events={events}
+            pagesCount={pages?.length}
+            since={company.createdAt}
+          />
+
+          {events.length > 0 && <SignalMix counts={counts} />}
+
+          {/* The 35-signal coverage board */}
+          <SignalCoverage counts={counts} activeSignal={activeSignal} onSelect={selectSignal} />
 
           {/* Tracked pages */}
-          <section className="mt-6">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">Tracked pages</h2>
+          <section>
+            <h2 className="mb-3 text-lg font-semibold tracking-tight text-ink">Tracked pages</h2>
             {!pages ? (
               <Skeleton className="h-20 w-full !bg-black/[0.05]" />
             ) : pages.length === 0 ? (
               <div className="rounded-xl border border-hairline bg-elevated/40 px-4 py-3 text-sm text-ink-muted">
                 No pages tracked yet.{" "}
-                <Link href="/add" className="text-brand-ink">Add pages →</Link>
+                <Link href="/add" className="font-medium text-brand-ink">Add pages →</Link>
               </div>
             ) : (
               <div className="grid gap-2 sm:grid-cols-2">
@@ -98,11 +121,18 @@ export default function CompanyDetailPage() {
             )}
           </section>
 
-          {/* Scoped feed */}
-          <section className="mt-8">
-            <h2 className="mb-3 text-sm font-semibold uppercase tracking-wide text-ink-muted">Signal history</h2>
+          {/* Signal history */}
+          <section ref={historyRef} className="scroll-mt-20">
+            <div className="mb-3 flex items-center justify-between">
+              <h2 className="text-lg font-semibold tracking-tight text-ink">Signal history</h2>
+              {activeSignal && (
+                <button onClick={() => setActiveSignal(null)} className="text-xs font-semibold text-brand-ink hover:underline">
+                  Clear filter
+                </button>
+              )}
+            </div>
             {events.length === 0 ? (
-              <EmptyState icon="◎" title="No changes detected yet" hint="Radar will post here the first time one of this company’s tracked pages changes." />
+              <EmptyState icon="◎" title="No changes detected yet" hint="Scout will post here the first time one of this company’s tracked pages changes." />
             ) : (
               <>
                 {Object.keys(counts).length > 1 && (
@@ -116,7 +146,7 @@ export default function CompanyDetailPage() {
               </>
             )}
           </section>
-        </>
+        </div>
       )}
     </div>
   );
