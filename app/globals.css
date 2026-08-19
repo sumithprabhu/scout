@@ -1,0 +1,161 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  color-scheme: light;
+}
+
+html {
+  scroll-behavior: smooth;
+  scroll-padding-top: 5rem; /* offset for the sticky nav on anchor jumps */
+}
+
+html,
+body {
+  height: 100%;
+}
+
+body {
+  background-color: #f4f5fa;
+  color: #1b1c22;
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+  letter-spacing: -0.011em; /* tighter, crisper type */
+}
+
+/* Subtle dot-grid texture (for hero/section backgrounds). */
+.dot-grid {
+  background-image: radial-gradient(rgba(110, 86, 240, 0.14) 1px, transparent 1px);
+  background-size: 22px 22px;
+  -webkit-mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 100%);
+  mask-image: radial-gradient(ellipse 80% 60% at 50% 40%, #000 40%, transparent 100%);
+}
+
+/* White dot texture for the dark/gradient CTA band. */
+.cta-texture {
+  background-image: radial-gradient(rgba(255, 255, 255, 0.16) 1px, transparent 1px);
+  background-size: 20px 20px;
+}
+
+/* ---- dark job-apply landing (/apply) utilities ---- */
+/* Subtle animated grid on near-black. */
+.apply-grid {
+  background-image:
+    linear-gradient(to right, rgba(255, 255, 255, 0.045) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(255, 255, 255, 0.045) 1px, transparent 1px);
+  background-size: 46px 46px;
+  -webkit-mask-image: radial-gradient(ellipse 75% 60% at 50% 30%, #000 30%, transparent 78%);
+  mask-image: radial-gradient(ellipse 75% 60% at 50% 30%, #000 30%, transparent 78%);
+}
+/* Edge-fade wrapper for marquees. */
+.edge-fade {
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+  mask-image: linear-gradient(to right, transparent, #000 12%, #000 88%, transparent);
+}
+@keyframes marquee-l {
+  from { transform: translateX(0); }
+  to { transform: translateX(-50%); }
+}
+@keyframes marquee-r {
+  from { transform: translateX(-50%); }
+  to { transform: translateX(0); }
+}
+.marquee-l { animation: marquee-l 38s linear infinite; }
+.marquee-r { animation: marquee-r 44s linear infinite; }
+@keyframes caret-blink { 0%, 49% { opacity: 1; } 50%, 100% { opacity: 0; } }
+.caret { animation: caret-blink 1s steps(1) infinite; }
+
+/* Orbiting ambient avatars behind the hero. Each avatar wrapper sits at center
+   and rotates around it at radius --r; the inner counter-rotate keeps the avatar
+   upright. The orbit FIELD is stretched with scaleX to make the paths ellipses. */
+@keyframes orbit {
+  from { transform: rotate(0deg) translateX(var(--r)) rotate(0deg); }
+  to   { transform: rotate(360deg) translateX(var(--r)) rotate(-360deg); }
+}
+@keyframes orbit-rev {
+  from { transform: rotate(360deg) translateX(var(--r)) rotate(-360deg); }
+  to   { transform: rotate(0deg) translateX(var(--r)) rotate(0deg); }
+}
+.orbit-field { transform: scaleX(1.45); }
+.orbit-item {
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  margin-left: -20px;
+  margin-top: -20px;
+  animation: orbit var(--dur, 40s) linear infinite;
+  animation-delay: var(--delay, 0s);
+}
+.orbit-item.rev { animation-name: orbit-rev; }
+@media (prefers-reduced-motion: reduce) {
+  .orbit-item { animation: none; }
+}
+
+/* ---- Scout landing (template-derived) utilities ---- */
+.bg-pinstripe {
+  background-image: repeating-linear-gradient(90deg, #d4caf5 0 1px, transparent 1px 9px);
+}
+.mask-fade-x {
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+  mask-image: linear-gradient(90deg, transparent, #000 8%, #000 92%, transparent);
+}
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Faint grid lines. */
+.grid-lines {
+  background-image:
+    linear-gradient(to right, rgba(17, 24, 39, 0.04) 1px, transparent 1px),
+    linear-gradient(to bottom, rgba(17, 24, 39, 0.04) 1px, transparent 1px);
+  background-size: 40px 40px;
+}
+
+/* Bolder, vibrant colored washes on the light canvas. */
+.canvas-glow {
+  background:
+    radial-gradient(1150px 560px at 6% -10%, rgba(110, 86, 240, 0.22), transparent 58%),
+    radial-gradient(950px 520px at 100% -6%, rgba(20, 184, 166, 0.18), transparent 56%),
+    radial-gradient(820px 500px at 52% 112%, rgba(236, 72, 153, 0.12), transparent 60%);
+}
+
+/* Thin, unobtrusive scrollbars for the light chrome. */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #cbcdd6 transparent;
+}
+*::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #d1d3dc;
+  border-radius: 999px;
+}
+
+/* Loading shimmer for skeletons. */
+.skeleton {
+  position: relative;
+  overflow: hidden;
+  background: rgba(17, 24, 39, 0.06);
+}
+.skeleton::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(
+    90deg,
+    transparent,
+    rgba(255, 255, 255, 0.6),
+    transparent
+  );
+  animation: shimmer 1.4s infinite;
+}
+@keyframes shimmer {
+  100% {
+    transform: translateX(100%);
+  }
+}
