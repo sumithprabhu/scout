@@ -1174,7 +1174,7 @@ function SignalTypes() {
 
 /* ------------------------- stats ------------------------- */
 const STATS: { value: string; label: string; caption: string; Icon: LucideIcon }[] = [
-  { value: "6", label: "Signal types, one feed", caption: "More signal types means fewer blind spots.", Icon: Layers },
+  { value: "35", label: "Signal types, one feed", caption: "More signal types means fewer blind spots.", Icon: Layers },
   { value: "5", label: "Page types, auto-found", caption: "Pricing, careers, trust and more, discovered for you with no URL hunting.", Icon: Map },
   { value: "1-line", label: "Plain-English summary", caption: "Every change explained in a sentence, not a raw diff.", Icon: Sparkles },
   { value: "0", label: "Manual checks", caption: "Scout watches on a schedule, so you never have to look.", Icon: Timer },
