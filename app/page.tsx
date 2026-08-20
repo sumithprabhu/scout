@@ -76,6 +76,15 @@ function Wordmark() {
   );
 }
 
+/* small "Beta" pill worn next to the logo in the navbar and footer */
+function BetaBadge() {
+  return (
+    <span className="rounded-full bg-purple/20 px-2 py-0.5 text-[10.5px] font-extrabold uppercase tracking-wide text-purple-deep">
+      Beta
+    </span>
+  );
+}
+
 const MENUS = [["Product", "#product"], ["How it works", "#how"], ["Pricing", "#pricing"]];
 
 function Navbar() {
@@ -101,7 +110,10 @@ function Navbar() {
       <header className="bg-mint/90 backdrop-blur-md">
         <nav className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-5 lg:px-8">
           <div className="flex items-center gap-9">
-            <Wordmark />
+            <div className="flex items-center gap-2">
+              <Wordmark />
+              <BetaBadge />
+            </div>
             <ul className="hidden items-center gap-1 lg:flex">
               {MENUS.map(([label, href]) => (
                 <li key={label}>
@@ -999,7 +1011,15 @@ function FinalCTA() {
               <button type="submit" className="rounded-pill bg-ink px-6 py-3 text-[15px] font-bold text-white transition-transform hover:-translate-y-px">Track it</button>
             </div>
           </form>
-          <p className="mt-4 text-[13px] text-ink/60">Free while in beta · No credit card required</p>
+          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
+            <span className="text-[17px] font-semibold text-ink/50 line-through decoration-red-500 decoration-[2.5px]">
+              $29/mo
+            </span>
+            <span className="rounded-full bg-white px-3.5 py-1 text-[13px] font-extrabold text-ink">
+              Free in beta
+            </span>
+          </div>
+          <p className="mt-3 text-[13px] text-ink/60">No credit card required</p>
         </div>
       </div>
     </section>
@@ -1018,6 +1038,7 @@ function Footer() {
           <div className="flex items-center gap-2">
             <ScoutMark size={22} />
             <span className="text-[18px] font-extrabold tracking-tight text-ink">{BRAND}</span>
+            <BetaBadge />
             <span className="text-[14px] text-muted">· Company intelligence</span>
           </div>
           <div className="flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-muted">
@@ -1025,6 +1046,14 @@ function Footer() {
               <Link key={l} href={href} className="transition-colors hover:text-ink">{l}</Link>
             ))}
           </div>
+        </div>
+        <div className="flex flex-wrap items-center gap-2 pb-3">
+          <span className="text-[12.5px] font-semibold text-ink/40 line-through decoration-red-500 decoration-2">
+            $29/mo
+          </span>
+          <span className="rounded-full bg-purple/15 px-2.5 py-0.5 text-[11px] font-extrabold text-purple-deep">
+            Free in beta
+          </span>
         </div>
         <p className="pb-10 text-[13px] text-faint">© {new Date().getFullYear()} {BRAND}. All rights reserved.</p>
       </div>
