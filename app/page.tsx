@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -27,6 +27,37 @@ import { SIGNAL_ORDER, signalStyle, PAGE_TYPE_LABELS } from "@/lib/ui/signals";
 import { timeAgo, renderValue, domainOf, hostPath } from "@/lib/ui/format";
 
 const BRAND = "Scout";
+
+// Mirrors middleware.ts's server-side check — true ONLY on an actual Vercel
+// production deploy (baked in at build time via next.config.mjs's `env` map,
+// so this is a static "1"/"0" string, identical on the server-rendered HTML
+// and the client bundle — no hydration mismatch risk).
+const BETA_GATE = process.env.NEXT_PUBLIC_BETA_GATE === "1";
+
+/**
+ * Drop-in replacement for next/link on any CTA that leads off the landing
+ * page. While BETA_GATE is on, it renders as an inert, half-opacity control
+ * with a "Beta · Coming soon" tooltip on hover instead of navigating —
+ * middleware.ts would bounce the visit back to "/" anyway, so this just makes
+ * that plain up front instead of a dead click.
+ */
+function GatedLink({ href, className, children }: { href: string; className?: string; children: ReactNode }) {
+  if (!BETA_GATE) {
+    return (
+      <Link href={href} className={className}>
+        {children}
+      </Link>
+    );
+  }
+  return (
+    <span className={`group relative inline-flex cursor-not-allowed opacity-50 ${className ?? ""}`}>
+      {children}
+      <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-white opacity-0 shadow-lg ring-1 ring-white/15 transition-opacity duration-150 group-hover:opacity-100">
+        Beta · Coming soon
+      </span>
+    </span>
+  );
+}
 
 export default function ScoutLanding() {
   const [events, setEvents] = useState<SignalEventDTO[]>([]);
@@ -152,12 +183,12 @@ function Navbar() {
           </div>
 
           <div className="hidden items-center gap-3 lg:flex">
-            <Link href="/feed" className="rounded-pill border border-ink/25 bg-white/60 px-5 py-2.5 text-[15px] font-semibold text-ink transition-colors hover:bg-white">
+            <GatedLink href="/feed" className="rounded-pill border border-ink/25 bg-white/60 px-5 py-2.5 text-[15px] font-semibold text-ink transition-colors hover:bg-white">
               Sign in
-            </Link>
-            <Link href="/add" className="rounded-pill bg-ink px-5 py-2.5 text-[15px] font-semibold text-white transition-transform hover:-translate-y-px">
+            </GatedLink>
+            <GatedLink href="/add" className="rounded-pill bg-ink px-5 py-2.5 text-[15px] font-semibold text-white transition-transform hover:-translate-y-px">
               Start tracking free
-            </Link>
+            </GatedLink>
           </div>
 
           <button className="flex h-9 w-9 items-center justify-center rounded-lg border border-ink/20 lg:hidden" onClick={() => setMobile((v) => !v)} aria-label="Toggle menu">
@@ -173,8 +204,8 @@ function Navbar() {
               </a>
             ))}
             <div className="mt-3 flex gap-2">
-              <Link href="/feed" className="flex-1 rounded-pill border border-ink/25 px-4 py-2.5 text-center text-[14px] font-semibold">Sign in</Link>
-              <Link href="/add" className="flex-1 rounded-pill bg-ink px-4 py-2.5 text-center text-[14px] font-semibold text-white">Start free</Link>
+              <GatedLink href="/feed" className="flex-1 justify-center rounded-pill border border-ink/25 px-4 py-2.5 text-center text-[14px] font-semibold">Sign in</GatedLink>
+              <GatedLink href="/add" className="flex-1 justify-center rounded-pill bg-ink px-4 py-2.5 text-center text-[14px] font-semibold text-white">Start free</GatedLink>
             </div>
           </div>
         )}
@@ -187,7 +218,11 @@ function Navbar() {
 function Hero({ events, companies }: { events: SignalEventDTO[]; companies: CompanyDTO[] }) {
   const router = useRouter();
   const [value, setValue] = useState("");
-  const go = (e: React.FormEvent) => { e.preventDefault(); router.push(value.trim() ? `/add?q=${encodeURIComponent(value.trim())}` : "/add"); };
+  const go = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (BETA_GATE) return;
+    router.push(value.trim() ? `/add?q=${encodeURIComponent(value.trim())}` : "/add");
+  };
 
   return (
     <section className="bg-mint">
@@ -199,14 +234,25 @@ function Hero({ events, companies }: { events: SignalEventDTO[]; companies: Comp
           Scout tracks a company’s public pages and tells you, in one line, every time something meaningful changes.
         </p>
 
-        <form onSubmit={go} className="mx-auto mt-10 max-w-xl animate-fade-up rounded-pill bg-white/50 p-1.5 [animation-delay:140ms]">
+        <form onSubmit={go} className={`group relative mx-auto mt-10 max-w-xl animate-fade-up rounded-pill bg-white/50 p-1.5 [animation-delay:140ms] ${BETA_GATE ? "opacity-60" : ""}`}>
           <div className="flex items-center gap-2 rounded-pill bg-white p-2 shadow-card">
             <Search className="ml-3 h-5 w-5 text-faint" />
-            <input value={value} onChange={(e) => setValue(e.target.value)} className="flex-1 bg-transparent px-1 py-2.5 text-[15px] text-ink outline-none placeholder:text-faint" placeholder="Paste a company name or URL" />
-            <button type="submit" className="rounded-pill bg-purple px-6 py-3 text-[15px] font-bold text-ink transition-colors hover:bg-purple-hover">
+            <input
+              value={value}
+              onChange={(e) => setValue(e.target.value)}
+              disabled={BETA_GATE}
+              className="flex-1 bg-transparent px-1 py-2.5 text-[15px] text-ink outline-none placeholder:text-faint disabled:cursor-not-allowed"
+              placeholder="Paste a company name or URL"
+            />
+            <button type="submit" disabled={BETA_GATE} className="rounded-pill bg-purple px-6 py-3 text-[15px] font-bold text-ink transition-colors hover:bg-purple-hover disabled:cursor-not-allowed">
               Track it
             </button>
           </div>
+          {BETA_GATE && (
+            <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-white opacity-0 shadow-lg ring-1 ring-white/15 transition-opacity duration-150 group-hover:opacity-100">
+              Beta · Coming soon
+            </span>
+          )}
         </form>
       </div>
 
@@ -966,7 +1012,7 @@ function DarkBand({ events }: { events: SignalEventDTO[] }) {
             <p className="mt-6 max-w-md text-[15.5px] leading-relaxed text-white/70">
               Scout filters out formatting churn and reflows. You only hear about changes that actually mean something, like a price move, a new cert, or a hiring surge.
             </p>
-            <Link href="/add" className="mt-7 inline-flex rounded-pill border border-white/40 px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">Start tracking free</Link>
+            <GatedLink href="/add" className="mt-7 rounded-pill border border-white/40 px-6 py-3 text-[15px] font-semibold text-white transition-colors hover:bg-white/10">Start tracking free</GatedLink>
           </div>
           <div className="rounded-2xl bg-[#0f130d] p-1.5">
             <div className="rounded-xl bg-white p-4">
@@ -1165,7 +1211,7 @@ function Stats() {
             <p className="text-[13px] font-semibold uppercase tracking-wide text-muted">What you get</p>
             <h2 className="mt-4 text-section font-extrabold uppercase text-ink">The full picture,<br /> in one place.</h2>
           </div>
-          <Link href="/feed" className="rounded-pill border border-ink/25 px-6 py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-white">See the feed</Link>
+          <GatedLink href="/feed" className="rounded-pill border border-ink/25 px-6 py-3 text-[15px] font-semibold text-ink transition-colors hover:bg-white">See the feed</GatedLink>
         </div>
 
         {/* moving spotlight: only the row nearest the viewport center is highlighted */}
@@ -1202,7 +1248,11 @@ function Stats() {
 function FinalCTA() {
   const router = useRouter();
   const [value, setValue] = useState("");
-  const go = (e: React.FormEvent) => { e.preventDefault(); router.push(value.trim() ? `/add?q=${encodeURIComponent(value.trim())}` : "/add"); };
+  const go = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (BETA_GATE) return;
+    router.push(value.trim() ? `/add?q=${encodeURIComponent(value.trim())}` : "/add");
+  };
   return (
     <section id="pricing" className="bg-mint px-5 pb-20 pt-12">
       <div className="relative mx-auto max-w-[1240px] overflow-hidden rounded-xl2 bg-purple px-6 py-20 text-center">
@@ -1210,12 +1260,25 @@ function FinalCTA() {
         <div className="pointer-events-none absolute -right-20 -top-20 h-60 w-60 rounded-full bg-white/20 blur-3xl" />
         <div className="relative">
           <h2 className="mx-auto max-w-3xl text-display font-extrabold text-ink">Start tracking a company today</h2>
-          <form onSubmit={go} className="mx-auto mt-8 max-w-xl rounded-pill bg-white/40 p-1.5">
+          <form onSubmit={go} className={`group relative mx-auto mt-8 max-w-xl rounded-pill bg-white/40 p-1.5 ${BETA_GATE ? "opacity-60" : ""}`}>
             <div className="flex items-center gap-2 rounded-pill bg-white p-2 shadow-card">
               <Search className="ml-3 h-5 w-5 text-faint" />
-              <input value={value} onChange={(e) => setValue(e.target.value)} className="flex-1 bg-transparent px-1 py-2.5 text-[15px] text-ink outline-none placeholder:text-faint" placeholder="Paste a company name or URL" />
-              <button type="submit" className="rounded-pill bg-ink px-6 py-3 text-[15px] font-bold text-white transition-transform hover:-translate-y-px">Track it</button>
+              <input
+                value={value}
+                onChange={(e) => setValue(e.target.value)}
+                disabled={BETA_GATE}
+                className="flex-1 bg-transparent px-1 py-2.5 text-[15px] text-ink outline-none placeholder:text-faint disabled:cursor-not-allowed"
+                placeholder="Paste a company name or URL"
+              />
+              <button type="submit" disabled={BETA_GATE} className="rounded-pill bg-ink px-6 py-3 text-[15px] font-bold text-white transition-transform hover:-translate-y-px disabled:cursor-not-allowed">
+                Track it
+              </button>
             </div>
+            {BETA_GATE && (
+              <span className="pointer-events-none absolute left-1/2 top-full z-50 mt-2 -translate-x-1/2 whitespace-nowrap rounded-lg bg-ink px-2.5 py-1.5 text-[12px] font-semibold text-white opacity-0 shadow-lg ring-1 ring-white/15 transition-opacity duration-150 group-hover:opacity-100">
+                Beta · Coming soon
+              </span>
+            )}
           </form>
         </div>
       </div>
@@ -1239,11 +1302,17 @@ function Footer() {
             <span className="text-[14px] text-muted">· Company intelligence</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] text-muted">
-            {links.map(([l, href]) => (
-              <Link key={l} href={href} className="flex items-center gap-1.5 transition-colors hover:text-ink">
-                {l === "Pricing" ? <PricingLabel /> : l}
-              </Link>
-            ))}
+            {links.map(([l, href]) =>
+              href.startsWith("/") ? (
+                <GatedLink key={l} href={href} className="transition-colors hover:text-ink">
+                  {l}
+                </GatedLink>
+              ) : (
+                <Link key={l} href={href} className="flex items-center gap-1.5 transition-colors hover:text-ink">
+                  {l === "Pricing" ? <PricingLabel /> : l}
+                </Link>
+              )
+            )}
           </div>
         </div>
         <p className="pb-10 text-[13px] text-faint">© {new Date().getFullYear()} {BRAND}. All rights reserved.</p>
