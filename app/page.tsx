@@ -76,11 +76,12 @@ function Wordmark() {
   );
 }
 
-/* small "Beta" tag stacked as its own row directly under the logo — the parent
-   must be a `flex flex-col items-start` (see Navbar/Footer usage). */
+/* small "Beta" tag next to the wordmark, on the same line but bottom-aligned
+   to it rather than vertically centered — the parent must be `flex items-end`
+   (see Navbar/Footer usage). */
 function BetaBadge() {
   return (
-    <span className="-mt-1 w-fit rounded-full bg-purple/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wide text-purple-deep">
+    <span className="rounded-full bg-purple/20 px-1.5 py-[1px] text-[9px] font-extrabold uppercase tracking-wide text-purple-deep">
       Beta
     </span>
   );
@@ -124,7 +125,7 @@ function Navbar() {
       <header className="bg-mint/90 backdrop-blur-md">
         <nav className="mx-auto flex h-[72px] max-w-[1280px] items-center justify-between px-5 lg:px-8">
           <div className="flex items-center gap-9">
-            <div className="flex flex-col items-start">
+            <div className="flex items-end gap-2">
               <Wordmark />
               <BetaBadge />
             </div>
@@ -1043,14 +1044,10 @@ function Footer() {
     <footer className="bg-mint">
       <div className="mx-auto max-w-[1240px] px-5 lg:px-8">
         <div className="flex flex-col gap-6 border-t border-ink/10 py-10 sm:flex-row sm:items-center sm:justify-between">
-          <div className="flex items-center gap-2">
-            <div className="flex flex-col items-start">
-              <div className="inline-flex items-center gap-2">
-                <ScoutMark size={22} />
-                <span className="text-[18px] font-extrabold tracking-tight text-ink">{BRAND}</span>
-              </div>
-              <BetaBadge />
-            </div>
+          <div className="flex items-end gap-2">
+            <ScoutMark size={22} />
+            <span className="text-[18px] font-extrabold tracking-tight text-ink">{BRAND}</span>
+            <BetaBadge />
             <span className="text-[14px] text-muted">· Company intelligence</span>
           </div>
           <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] text-muted">
