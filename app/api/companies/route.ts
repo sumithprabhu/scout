@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import { waitUntil } from "@vercel/functions";
 import { connectDB } from "@/lib/db";
 import { Company } from "@/models/Company";
 import { normalizeRootUrl } from "@/lib/intel/url";
@@ -7,6 +8,11 @@ import { discoverForCompany } from "@/lib/discovery";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// The waitUntil'd discovery scrape below can run up to ~75s (the add-company UI
+// polls that long before falling back to manual entry) — raise Vercel's default
+// function timeout so it isn't killed mid-scrape. Hobby caps at 60s; Pro allows
+// this in full. On Hobby, discovery will still just run until the platform cap.
+export const maxDuration = 90;
 
 /**
  * POST /api/companies  { url, name?, email?, discover? }
@@ -20,8 +26,14 @@ export const dynamic = "force-dynamic";
  * Discovery runs FIRE-AND-FORGET: we create the company, return immediately, and
  * let discovery populate TrackedPages in the background (poll GET .../pages to
  * watch them appear). Awaiting a multi-minute scrape would make this HTTP call
- * hang. In a serverless deploy this would be a durable queue; for the hackathon
- * (long-lived next dev / node server) fire-and-forget is the pragmatic shape.
+ * hang.
+ *
+ * Background work after `return` is unsafe on serverless (Vercel can freeze the
+ * function the instant the response is sent, killing the in-flight scrape), so
+ * the discovery promise is handed to @vercel/functions' `waitUntil()`, which
+ * extends the function's lifetime until it settles. Off Vercel (local `next dev`,
+ * a self-hosted Node server) `waitUntil` is a no-op and the promise just keeps
+ * running on the long-lived process — same fire-and-forget behavior as before.
  * Pass { discover: false } to skip discovery (used by tests / manual page entry).
  */
 export async function POST(req: Request) {
@@ -60,9 +72,12 @@ export async function POST(req: Request) {
 
   const shouldDiscover = body.discover !== false;
   if (shouldDiscover) {
-    // Fire-and-forget: don't await the multi-minute discovery scrape.
-    void discoverForCompany(String(company._id)).catch((err) =>
-      console.error("[/api/companies] discovery failed:", err.message)
+    // Don't await the multi-minute discovery scrape; waitUntil keeps it alive
+    // past the response on serverless (no-op, still fire-and-forget, elsewhere).
+    waitUntil(
+      discoverForCompany(String(company._id)).catch((err) =>
+        console.error("[/api/companies] discovery failed:", err.message)
+      )
     );
   }
 

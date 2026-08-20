@@ -6,6 +6,10 @@ import { normalizePageUrl } from "@/lib/intel/url";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
+// ingestSnapshot is awaited in full here (diff + a Nova classify/summarize call)
+// before responding to Bright Data — give it headroom beyond Vercel's short
+// default in case of a slow Bedrock round-trip or retry backoff.
+export const maxDuration = 30;
 
 /**
  * POST /api/webhook/scrape-result?pageUrl=<url>
