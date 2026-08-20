@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "framer-motion";
@@ -13,21 +13,25 @@ import {
   Bell, Check,
   type LucideIcon,
 } from "lucide-react";
-import { Avatar } from "@/components/ui/Avatar";
+import { CompanyLogo } from "@/components/ui/CompanyLogo";
 import { SignalPill } from "@/components/ui/Pill";
-import { fetchGlobalEvents, type SignalEventDTO } from "@/lib/ui/api";
+import { fetchGlobalEvents, fetchCompanies, type SignalEventDTO, type CompanyDTO } from "@/lib/ui/api";
 import { SIGNAL_ORDER, signalStyle } from "@/lib/ui/signals";
-import { timeAgo, renderValue } from "@/lib/ui/format";
+import { timeAgo, renderValue, domainOf } from "@/lib/ui/format";
 
 const BRAND = "Scout";
 
 export default function ScoutLanding() {
   const [events, setEvents] = useState<SignalEventDTO[]>([]);
-  useEffect(() => { fetchGlobalEvents({ limit: 6 }).then((d) => setEvents(d.events)).catch(() => {}); }, []);
+  const [companies, setCompanies] = useState<CompanyDTO[]>([]);
+  useEffect(() => {
+    fetchGlobalEvents({ limit: 6 }).then((d) => setEvents(d.events)).catch(() => {});
+    fetchCompanies().then((d) => setCompanies(d.companies)).catch(() => {});
+  }, []);
   return (
     <main className="min-h-screen bg-mint">
       <Navbar />
-      <Hero events={events} />
+      <Hero events={events} companies={companies} />
       {/* smooth mint -> lavender transition */}
       <div aria-hidden className="h-24 bg-gradient-to-b from-mint to-lav" />
       <ValueBlocks />
@@ -173,7 +177,7 @@ function Navbar() {
 }
 
 /* ------------------------------- hero ------------------------------- */
-function Hero({ events }: { events: SignalEventDTO[] }) {
+function Hero({ events, companies }: { events: SignalEventDTO[]; companies: CompanyDTO[] }) {
   const router = useRouter();
   const [value, setValue] = useState("");
   const go = (e: React.FormEvent) => { e.preventDefault(); router.push(value.trim() ? `/add?q=${encodeURIComponent(value.trim())}` : "/add"); };
@@ -201,18 +205,28 @@ function Hero({ events }: { events: SignalEventDTO[] }) {
 
       {/* product panel over pinstripe */}
       <div className="mt-16 px-5 pb-8">
-        <FeedPanel events={events} />
+        <FeedPanel events={events} companies={companies} />
       </div>
     </section>
   );
 }
 
-function FeedPanel({ events }: { events: SignalEventDTO[] }) {
+function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEventDTO[]; companies: CompanyDTO[] }) {
   const [activeType, setActiveType] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [view, setView] = useState<"feed" | "portfolio">("feed");
   const [activePage, setActivePage] = useState<string | null>(null);
   const [selectedCo, setSelectedCo] = useState<string | null>(null);
+
+  // real favicon per company name, resolved via the tracked companies' domains.
+  // (globalThis.Map — the bare `Map` identifier is shadowed by the lucide icon
+  // imported below for the signal-category cards.)
+  const domainByName = useMemo(() => {
+    const rootById = new globalThis.Map(trackedCompanies.map((c) => [c.companyId, c.rootUrl] as const));
+    const m = new globalThis.Map<string, string | undefined>();
+    for (const e of events) if (e.companyName) m.set(e.companyName, domainOf(rootById.get(e.companyId)));
+    return m;
+  }, [events, trackedCompanies]);
 
   const counts: Record<string, number> = {};
   for (const e of events) counts[e.signalType] = (counts[e.signalType] ?? 0) + 1;
@@ -344,7 +358,7 @@ function FeedPanel({ events }: { events: SignalEventDTO[] }) {
           <div className="flex h-[600px] min-w-0 flex-col p-5 sm:p-6">
             <div className="mb-4 flex shrink-0 items-center justify-between">
               <div>
-                <h3 className="text-[16px] font-bold text-ink">{view === "feed" ? "Signal feed" : "Portfolio"}</h3>
+                <h3 className="text-[16px] font-bold text-ink">{view === "feed" ? "Signal Feed" : "Portfolio"}</h3>
                 <span className="text-[12px] text-faint">{view === "feed" ? "live · classified by AI" : `${companies.length} companies tracked`}</span>
               </div>
               <span className="hidden items-center gap-1.5 rounded-full bg-mint px-3 py-1 text-[11.5px] font-semibold text-ink/70 sm:inline-flex">
@@ -378,7 +392,7 @@ function FeedPanel({ events }: { events: SignalEventDTO[] }) {
                     <motion.div key={activeType ?? "all"} initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.09 } } }} className="space-y-2.5">
                       {filtered.map((e, ri) => (
                         <motion.div key={e.signalEventId} data-tour={ri === 0 ? "row-0" : undefined} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
-                          <FeedRow event={e} open={openId === e.signalEventId} onToggle={() => setOpenId(openId === e.signalEventId ? null : e.signalEventId)} />
+                          <FeedRow event={e} open={openId === e.signalEventId} onToggle={() => setOpenId(openId === e.signalEventId ? null : e.signalEventId)} domain={domainByName.get(e.companyName ?? "")} />
                         </motion.div>
                       ))}
                     </motion.div>
@@ -397,7 +411,7 @@ function FeedPanel({ events }: { events: SignalEventDTO[] }) {
                       <motion.div key={name} data-tour={ci < 3 ? `co-${ci}` : undefined} variants={{ hidden: { opacity: 0, y: 10 }, show: { opacity: 1, y: 0 } }}
                         className={`overflow-hidden rounded-xl border transition-colors ${open ? "border-purple bg-purple/[0.06]" : "border-line bg-white"}`}>
                         <button onClick={() => setSelectedCo(open ? null : name)} className="flex w-full items-center gap-3 px-3.5 py-2.5 text-left">
-                          <FloatAvatar name={name} size={26} />
+                          <FloatAvatar name={name} size={26} domain={domainByName.get(name)} />
                           <span className="text-[13px] font-semibold text-ink">{name}</span>
                           <div className="ml-auto flex items-center gap-2">
                             <div className="h-1.5 w-20 overflow-hidden rounded-full bg-mint"><div className="h-full rounded-full bg-teal" style={{ width: `${(n / max) * 100}%` }} /></div>
@@ -457,7 +471,7 @@ function FeedPanel({ events }: { events: SignalEventDTO[] }) {
               <div className="mt-5 rounded-xl border border-line p-3">
                 <div className="text-[10.5px] font-bold uppercase tracking-wider text-faint">Most active</div>
                 <div className="mt-2 flex items-center gap-2">
-                  <FloatAvatar name={topCo[0]} size={22} />
+                  <FloatAvatar name={topCo[0]} size={22} domain={domainByName.get(topCo[0])} />
                   <span className="text-[13px] font-semibold text-ink">{topCo[0]}</span>
                   <span className="ml-auto text-[11.5px] text-faint">{topCo[1]}</span>
                 </div>
@@ -478,8 +492,10 @@ function SideItem({ label, active = false, icon, onClick, dataTour }: { label: s
   );
 }
 
-/* company avatar with a subtle, out-of-sync idle dangle (swings from the top) */
-function FloatAvatar({ name, size }: { name: string; size: number }) {
+/* company logo with a subtle, out-of-sync idle dangle (swings from the top) —
+   real favicon when a domain is known, initials otherwise (CompanyLogo's own
+   fallback) */
+function FloatAvatar({ name, size, domain }: { name: string; size: number; domain?: string }) {
   const delay = (name.charCodeAt(0) % 10) * 0.3;
   return (
     <motion.span
@@ -487,7 +503,7 @@ function FloatAvatar({ name, size }: { name: string; size: number }) {
       animate={{ rotate: [0, -6, 0, 6, 0] }}
       transition={{ duration: 3.4, repeat: Infinity, ease: "easeInOut", delay }}
     >
-      <Avatar name={name} size={size} />
+      <CompanyLogo name={name} domain={domain} size={size} />
     </motion.span>
   );
 }
@@ -501,7 +517,7 @@ function FilterChip({ label, active, onClick, dataTour }: { label: string; activ
   );
 }
 
-function FeedRow({ event, open, onToggle }: { event: SignalEventDTO; open: boolean; onToggle: () => void }) {
+function FeedRow({ event, open, onToggle, domain }: { event: SignalEventDTO; open: boolean; onToggle: () => void; domain?: string }) {
   const s = signalStyle(event.signalType);
   const changes = event.diffDetail?.changes ?? [];
   const hasDiff = changes.length > 0;
@@ -511,7 +527,7 @@ function FeedRow({ event, open, onToggle }: { event: SignalEventDTO; open: boole
         <div className="w-1.5 shrink-0" style={{ backgroundColor: s.accent }} />
         <button onClick={() => hasDiff && onToggle()} className={`min-w-0 flex-1 px-3.5 py-3 text-left ${hasDiff ? "cursor-pointer" : "cursor-default"}`}>
           <div className="flex items-center gap-2">
-            <FloatAvatar name={event.companyName ?? "?"} size={22} />
+            <FloatAvatar name={event.companyName ?? "?"} size={22} domain={domain} />
             <span className="text-[13px] font-semibold text-ink">{event.companyName}</span>
             <SignalPill type={event.signalType} />
             <span className="ml-auto flex shrink-0 items-center gap-1.5 text-[11px] text-faint">
