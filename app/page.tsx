@@ -111,7 +111,7 @@ function PricingLabel() {
   );
 }
 
-const MENUS = [["Product", "#product"], ["How it works", "#how"], ["Pricing", "#pricing"]];
+const MENUS = [["Product", "#product"], ["What we Track", "#track"], ["What you Get", "#get"], ["Pricing", "#pricing"]];
 
 function Navbar() {
   const [mobile, setMobile] = useState(false);
@@ -1097,7 +1097,7 @@ function SignalTypes() {
   const row1 = CATEGORIES.slice(0, half);
   const row2 = CATEGORIES.slice(half);
   return (
-    <section id="how" className="bg-mint py-20">
+    <section id="track" className="bg-mint py-20">
       <div className="mx-auto max-w-[1240px] px-5 lg:px-8">
         <p className="text-[13px] font-semibold uppercase tracking-wide text-muted">
           {CATEGORIES.length} signal types <span className="text-faint">({CATEGORIES.length})</span>
@@ -1158,7 +1158,7 @@ function Stats() {
   }, []);
 
   return (
-    <section className="bg-mint py-20">
+    <section id="get" className="bg-mint py-20">
       <div className="mx-auto max-w-[1240px] px-5 lg:px-8">
         <div className="flex flex-col items-start justify-between gap-6 lg:flex-row lg:items-end">
           <div>
@@ -1227,7 +1227,7 @@ function FinalCTA() {
 /* ------------------------- footer ------------------------- */
 function Footer() {
   const links = [
-    ["Feed", "/feed"], ["Pricing", "#pricing"], ["How it works", "#how"], ["Privacy", "#"], ["Terms", "#"],
+    ["Feed", "/feed"], ["What we Track", "#track"], ["What you Get", "#get"], ["Pricing", "#pricing"],
   ];
   return (
     <footer className="bg-mint">
