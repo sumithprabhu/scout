@@ -85,6 +85,19 @@ function BetaBadge() {
   );
 }
 
+/* the "Pricing" nav/footer label itself, struck through in red + a "Free in
+   beta" chip — used in place of the plain label wherever it says "Pricing" */
+function PricingLabel() {
+  return (
+    <>
+      <span className="line-through decoration-red-500 decoration-2">Pricing</span>
+      <span className="rounded-full bg-purple/15 px-1.5 py-0.5 text-[10px] font-extrabold leading-none text-purple-deep">
+        Free in beta
+      </span>
+    </>
+  );
+}
+
 const MENUS = [["Product", "#product"], ["How it works", "#how"], ["Pricing", "#pricing"]];
 
 function Navbar() {
@@ -117,8 +130,8 @@ function Navbar() {
             <ul className="hidden items-center gap-1 lg:flex">
               {MENUS.map(([label, href]) => (
                 <li key={label}>
-                  <a href={href} className="flex items-center gap-1 rounded-lg px-3 py-2 text-[15px] font-semibold text-ink transition-colors hover:text-ink/60">
-                    {label}
+                  <a href={href} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-semibold text-ink transition-colors hover:text-ink/60">
+                    {label === "Pricing" ? <PricingLabel /> : label}
                   </a>
                 </li>
               ))}
@@ -142,7 +155,9 @@ function Navbar() {
         {mobile && (
           <div className="border-t border-ink/10 px-5 py-4 lg:hidden">
             {MENUS.map(([label, href]) => (
-              <a key={label} href={href} onClick={() => setMobile(false)} className="block rounded-lg px-3 py-2 text-[15px] font-semibold text-ink">{label}</a>
+              <a key={label} href={href} onClick={() => setMobile(false)} className="flex items-center gap-1.5 rounded-lg px-3 py-2 text-[15px] font-semibold text-ink">
+                {label === "Pricing" ? <PricingLabel /> : label}
+              </a>
             ))}
             <div className="mt-3 flex gap-2">
               <Link href="/feed" className="flex-1 rounded-pill border border-ink/25 px-4 py-2.5 text-center text-[14px] font-semibold">Sign in</Link>
@@ -1011,15 +1026,7 @@ function FinalCTA() {
               <button type="submit" className="rounded-pill bg-ink px-6 py-3 text-[15px] font-bold text-white transition-transform hover:-translate-y-px">Track it</button>
             </div>
           </form>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-2.5">
-            <span className="text-[17px] font-semibold text-ink/50 line-through decoration-red-500 decoration-[2.5px]">
-              $29/mo
-            </span>
-            <span className="rounded-full bg-white px-3.5 py-1 text-[13px] font-extrabold text-ink">
-              Free in beta
-            </span>
-          </div>
-          <p className="mt-3 text-[13px] text-ink/60">No credit card required</p>
+          <p className="mt-4 text-[13px] text-ink/60">Free while in beta · No credit card required</p>
         </div>
       </div>
     </section>
@@ -1041,19 +1048,13 @@ function Footer() {
             <BetaBadge />
             <span className="text-[14px] text-muted">· Company intelligence</span>
           </div>
-          <div className="flex flex-wrap gap-x-6 gap-y-2 text-[14px] text-muted">
+          <div className="flex flex-wrap items-center gap-x-6 gap-y-2 text-[14px] text-muted">
             {links.map(([l, href]) => (
-              <Link key={l} href={href} className="transition-colors hover:text-ink">{l}</Link>
+              <Link key={l} href={href} className="flex items-center gap-1.5 transition-colors hover:text-ink">
+                {l === "Pricing" ? <PricingLabel /> : l}
+              </Link>
             ))}
           </div>
-        </div>
-        <div className="flex flex-wrap items-center gap-2 pb-3">
-          <span className="text-[12.5px] font-semibold text-ink/40 line-through decoration-red-500 decoration-2">
-            $29/mo
-          </span>
-          <span className="rounded-full bg-purple/15 px-2.5 py-0.5 text-[11px] font-extrabold text-purple-deep">
-            Free in beta
-          </span>
         </div>
         <p className="pb-10 text-[13px] text-faint">© {new Date().getFullYear()} {BRAND}. All rights reserved.</p>
       </div>
