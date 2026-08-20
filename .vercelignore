@@ -1,0 +1,11 @@
+# Vercel's CLI upload doesn't reliably honor .gitignore for local secret files —
+# be explicit so `vercel deploy` never bundles real env values into the deploy
+# source. Real config must be set via `vercel env add` / the dashboard instead.
+.env
+.env.local
+.env*.local
+
+# never needed in the deployed source
+/scratchpad/
+/semrush/
+*.log
