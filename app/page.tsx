@@ -215,7 +215,6 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
   const [activeType, setActiveType] = useState<string | null>(null);
   const [openId, setOpenId] = useState<string | null>(null);
   const [view, setView] = useState<"feed" | "portfolio">("feed");
-  const [activePage, setActivePage] = useState<string | null>(null);
   const [selectedCo, setSelectedCo] = useState<string | null>(null);
 
   // real favicon per company name, resolved via the tracked companies' domains.
@@ -238,10 +237,6 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
   for (const e of events) if (e.companyName) byCo[e.companyName] = (byCo[e.companyName] ?? 0) + 1;
   const companies = Object.entries(byCo).sort((a, b) => b[1] - a[1]);
   const topCo = companies[0];
-
-  const pages = [
-    ["Homepage", 3], ["Pricing", 2], ["Careers", 2], ["Trust & Security", 1], ["Integrations", 1], ["Changelog", 2],
-  ] as const;
 
   // ---- auto-pilot demo cursor ----
   const panelRef = useRef<HTMLDivElement>(null);
@@ -334,24 +329,34 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
 
         {/* app body */}
         <div className="grid grid-cols-1 sm:grid-cols-[210px_1fr] lg:grid-cols-[210px_1fr_248px]">
-          {/* sidebar */}
+          {/* sidebar — mirrors the real app's AppShell: logo, track-company
+              action, Feed/Portfolio nav, then a clickable Companies list */}
           <aside className="hidden border-r border-line p-4 sm:block">
+            <div className="mb-3.5 flex items-end gap-1.5 px-1">
+              <ScoutMark size={17} />
+              <span className="text-[14px] font-extrabold tracking-tight text-ink">Scout</span>
+            </div>
+            <button className="mb-3.5 flex w-full items-center justify-center gap-1.5 rounded-lg bg-purple-deep px-2.5 py-1.5 text-[12px] font-semibold text-white">
+              <span className="text-[13px] leading-none">+</span> Track a company
+            </button>
             <SideItem label="Feed" icon="≡" active={view === "feed"} onClick={() => setView("feed")} dataTour="feed" />
             <SideItem label="Portfolio" icon="◫" active={view === "portfolio"} onClick={() => setView("portfolio")} dataTour="portfolio" />
-            <div className="mt-5 mb-2 px-2 text-[10.5px] font-bold uppercase tracking-wider text-faint">Tracked pages</div>
-            {pages.map(([n, c]) => {
-              const on = activePage === n;
-              return (
-                <button
-                  key={n}
-                  onClick={() => setActivePage(on ? null : n)}
-                  className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-[12.5px] transition-colors ${on ? "bg-mint font-semibold text-ink" : "text-muted hover:bg-mint/60"}`}
-                >
-                  <span>{n}</span>
-                  <span className="rounded-full bg-mint px-1.5 text-[10px] font-semibold text-ink/60">{c}</span>
-                </button>
-              );
-            })}
+            <div className="mt-5 mb-2 px-2 text-[10.5px] font-bold uppercase tracking-wider text-faint">Companies</div>
+            <div className="space-y-0.5">
+              {trackedCompanies.map((c) => {
+                const on = view === "portfolio" && selectedCo === c.name;
+                return (
+                  <button
+                    key={c.companyId}
+                    onClick={() => { setView("portfolio"); setSelectedCo(c.name); }}
+                    className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] transition-colors ${on ? "bg-mint font-semibold text-ink" : "text-muted hover:bg-mint/60"}`}
+                  >
+                    <CompanyLogo name={c.name} domain={domainOf(c.rootUrl)} size={18} />
+                    <span className="truncate">{c.name}</span>
+                  </button>
+                );
+              })}
+            </div>
           </aside>
 
           {/* main — fixed height, list scrolls internally */}
