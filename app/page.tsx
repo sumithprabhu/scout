@@ -271,33 +271,39 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
     tour: string;
     act?: () => void;
     hold?: number;
-    /** scroll the target row into view before moving the cursor to it (used for
-     *  a row that's below the fold in the feed list) */
-    scrollIntoView?: boolean;
-    /** a pure scroll beat — no click, just scrolls the found container to its
-     *  bottom then back to the top (used to "slide through" a company overview) */
+    /** a pure scroll beat — no click, just scrolls the found container all the
+     *  way to its bottom (used to reveal a below-the-fold row, or to "slide
+     *  through" a company overview) */
     scrollOnly?: boolean;
+    /** after the bottom-scroll, also scroll back up to the top before moving on
+     *  (used for the company overview "slide" — NOT for revealing a feed row,
+     *  which needs to stay scrolled down for the very next click step) */
+    scrollBackUp?: boolean;
   }
   const stepsRef = useRef<TourStep[]>([]);
   stepsRef.current = [
     { tour: "feed", act: () => { setOpenCompanyId(null); setView("feed"); setActiveType(null); setOpenId(null); setSelectedCo(null); }, hold: 900 },
     { tour: "row-0", act: () => setOpenId(firstRowId), hold: 1500 },
     ...(secondLastRowId
-      ? [{ tour: "row-second-last", scrollIntoView: true, act: () => setOpenId(secondLastRowId), hold: 1700 } as TourStep]
+      ? [
+          { tour: "feed-scroll", scrollOnly: true, hold: 900 } as TourStep,
+          { tour: "row-second-last", act: () => setOpenId(secondLastRowId), hold: 1700 } as TourStep,
+        ]
       : []),
     { tour: "portfolio", act: () => { setOpenId(null); setView("portfolio"); setSelectedCo(null); }, hold: 900 },
     { tour: "co-0", act: () => setSelectedCo(coNames[0] ?? null), hold: 1200 },
     { tour: "co-1", act: () => setSelectedCo(coNames[1] ?? null), hold: 1400 },
+    // once inside a company overview, only scroll through it — no more clicking there
     ...(sideCoIds[0]
       ? [
           { tour: "side-co-0", act: () => { setSelectedCo(null); setOpenCompanyId(sideCoIds[0]); }, hold: 900 } as TourStep,
-          { tour: "company-scroll", scrollOnly: true, hold: 1500 } as TourStep,
+          { tour: "company-scroll", scrollOnly: true, scrollBackUp: true, hold: 1600 } as TourStep,
         ]
       : []),
     ...(sideCoIds[1]
       ? [
           { tour: "side-co-1", act: () => setOpenCompanyId(sideCoIds[1]), hold: 900 } as TourStep,
-          { tour: "company-scroll", scrollOnly: true, hold: 1500 } as TourStep,
+          { tour: "company-scroll", scrollOnly: true, scrollBackUp: true, hold: 1600 } as TourStep,
         ]
       : []),
   ];
@@ -324,15 +330,15 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
             setCursor({ x: er.left - cr.left + er.width - 24, y: er.top - cr.top + 30 });
             await sleep(500);
             if (!idle()) continue;
+            // deterministic full scroll — go all the way to the bottom of this
+            // container (not a partial scrollIntoView nudge)
             el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
             await sleep(step.hold ?? 1400);
-            el.scrollTo({ top: 0, behavior: "smooth" });
-            await sleep(500);
-          } else {
-            if (step.scrollIntoView) {
-              el.scrollIntoView({ behavior: "smooth", block: "center" });
+            if (step.scrollBackUp) {
+              el.scrollTo({ top: 0, behavior: "smooth" });
               await sleep(500);
             }
+          } else {
             const cr = container.getBoundingClientRect();
             const er = el.getBoundingClientRect();
             setCursorVisible(true);
@@ -462,7 +468,7 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
                 </div>
 
                 {/* feed rows — scrollable, staggered load-in */}
-                <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
+                <div data-tour="feed-scroll" className="no-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
                   {events.length === 0 ? (
                     <div className="space-y-2.5">{Array.from({ length: 4 }).map((_, i) => <div key={i} className="skeleton h-16 rounded-xl" />)}</div>
                   ) : (
