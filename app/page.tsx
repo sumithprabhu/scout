@@ -14,10 +14,17 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { CompanyLogo } from "@/components/ui/CompanyLogo";
-import { SignalPill } from "@/components/ui/Pill";
-import { fetchGlobalEvents, fetchCompanies, type SignalEventDTO, type CompanyDTO } from "@/lib/ui/api";
-import { SIGNAL_ORDER, signalStyle } from "@/lib/ui/signals";
-import { timeAgo, renderValue, domainOf } from "@/lib/ui/format";
+import { SignalPill, StatusPill } from "@/components/ui/Pill";
+import { InsightCard } from "@/components/company/InsightCard";
+import { SignalMix } from "@/components/company/SignalMix";
+import { SignalCoverage } from "@/components/company/SignalCoverage";
+import { SignalCard } from "@/components/feed/SignalCard";
+import {
+  fetchGlobalEvents, fetchCompanies, fetchCompanyPages,
+  type SignalEventDTO, type CompanyDTO, type TrackedPageDTO,
+} from "@/lib/ui/api";
+import { SIGNAL_ORDER, signalStyle, PAGE_TYPE_LABELS } from "@/lib/ui/signals";
+import { timeAgo, renderValue, domainOf, hostPath } from "@/lib/ui/format";
 
 const BRAND = "Scout";
 
@@ -216,6 +223,12 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
   const [openId, setOpenId] = useState<string | null>(null);
   const [view, setView] = useState<"feed" | "portfolio">("feed");
   const [selectedCo, setSelectedCo] = useState<string | null>(null);
+  // set when a sidebar "Companies" entry is clicked — swaps the whole main
+  // content area for the real company-overview UI (InsightCard/SignalMix/
+  // SignalCoverage), the same components the real dashboard's /companies/:id
+  // page uses.
+  const [openCompanyId, setOpenCompanyId] = useState<string | null>(null);
+  const openCompany = trackedCompanies.find((c) => c.companyId === openCompanyId) ?? null;
 
   // real favicon per company name, resolved via the tracked companies' domains.
   // (globalThis.Map — the bare `Map` identifier is shadowed by the lucide icon
@@ -339,16 +352,16 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
             <button className="mb-3.5 flex w-full items-center justify-center gap-1.5 rounded-lg bg-purple-deep px-2.5 py-1.5 text-[12px] font-semibold text-white">
               <span className="text-[13px] leading-none">+</span> Track a company
             </button>
-            <SideItem label="Feed" icon="≡" active={view === "feed"} onClick={() => setView("feed")} dataTour="feed" />
-            <SideItem label="Portfolio" icon="◫" active={view === "portfolio"} onClick={() => setView("portfolio")} dataTour="portfolio" />
+            <SideItem label="Feed" icon="≡" active={!openCompanyId && view === "feed"} onClick={() => { setOpenCompanyId(null); setView("feed"); }} dataTour="feed" />
+            <SideItem label="Portfolio" icon="◫" active={!openCompanyId && view === "portfolio"} onClick={() => { setOpenCompanyId(null); setView("portfolio"); }} dataTour="portfolio" />
             <div className="mt-5 mb-2 px-2 text-[10.5px] font-bold uppercase tracking-wider text-faint">Companies</div>
             <div className="space-y-0.5">
               {trackedCompanies.map((c) => {
-                const on = view === "portfolio" && selectedCo === c.name;
+                const on = openCompanyId === c.companyId;
                 return (
                   <button
                     key={c.companyId}
-                    onClick={() => { setView("portfolio"); setSelectedCo(c.name); }}
+                    onClick={() => setOpenCompanyId(c.companyId)}
                     className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] transition-colors ${on ? "bg-mint font-semibold text-ink" : "text-muted hover:bg-mint/60"}`}
                   >
                     <CompanyLogo name={c.name} domain={domainOf(c.rootUrl)} size={18} />
@@ -363,15 +376,29 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
           <div className="flex h-[600px] min-w-0 flex-col p-5 sm:p-6">
             <div className="mb-4 flex shrink-0 items-center justify-between">
               <div>
-                <h3 className="text-[16px] font-bold text-ink">{view === "feed" ? "Signal Feed" : "Portfolio"}</h3>
-                <span className="text-[12px] text-faint">{view === "feed" ? "live · classified by AI" : `${companies.length} companies tracked`}</span>
+                <h3 className="text-[16px] font-bold text-ink">
+                  {openCompany ? openCompany.name : view === "feed" ? "Signal Feed" : "Portfolio"}
+                </h3>
+                <span className="text-[12px] text-faint">
+                  {openCompany
+                    ? "Company overview"
+                    : view === "feed"
+                    ? "live · classified by AI"
+                    : `${companies.length} companies tracked`}
+                </span>
               </div>
               <span className="hidden items-center gap-1.5 rounded-full bg-mint px-3 py-1 text-[11.5px] font-semibold text-ink/70 sm:inline-flex">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-teal" /> {events.length || 0} signals
               </span>
             </div>
 
-            {view === "feed" ? (
+            {openCompany ? (
+              <CompanyOverviewPanel
+                company={openCompany}
+                events={events.filter((e) => e.companyId === openCompany.companyId)}
+                onBack={() => setOpenCompanyId(null)}
+              />
+            ) : view === "feed" ? (
               <>
                 {/* filter chips (interactive) */}
                 <div className="mb-4 flex shrink-0 flex-wrap gap-1.5">
@@ -483,6 +510,96 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
               </div>
             )}
           </aside>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/**
+ * The real company-overview UI (InsightCard + SignalMix + SignalCoverage +
+ * tracked pages + signal history), reused as-is from the dashboard so clicking
+ * a company in the demo panel's sidebar shows exactly what /companies/:id
+ * shows in the real app — not a re-implemented mini version.
+ */
+function CompanyOverviewPanel({
+  company,
+  events,
+  onBack,
+}: {
+  company: CompanyDTO;
+  events: SignalEventDTO[];
+  onBack: () => void;
+}) {
+  const [pages, setPages] = useState<TrackedPageDTO[] | null>(null);
+  const [activeSignal, setActiveSignal] = useState<string | null>(null);
+
+  useEffect(() => {
+    let alive = true;
+    setPages(null);
+    setActiveSignal(null);
+    fetchCompanyPages(company.companyId)
+      .then((d) => alive && setPages(d.pages))
+      .catch(() => alive && setPages([]));
+    return () => {
+      alive = false;
+    };
+  }, [company.companyId]);
+
+  const counts: Record<string, number> = {};
+  for (const e of events) counts[e.signalType] = (counts[e.signalType] ?? 0) + 1;
+  const filtered = events.filter((e) => !activeSignal || e.signalType === activeSignal);
+  const domain = domainOf(company.rootUrl);
+
+  return (
+    <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
+      <button onClick={onBack} className="mb-3 flex items-center gap-1.5 text-[12.5px] font-semibold text-muted hover:text-ink">
+        ← Back
+      </button>
+      <div className="space-y-4 pb-2 text-[13px]">
+        <InsightCard name={company.name} rootUrl={company.rootUrl} events={events} pagesCount={pages?.length} since={company.createdAt} />
+
+        {events.length > 0 && <SignalMix counts={counts} />}
+
+        <SignalCoverage counts={counts} activeSignal={activeSignal} onSelect={setActiveSignal} />
+
+        <div>
+          <h4 className="mb-2 text-[13px] font-semibold text-ink">Tracked pages</h4>
+          {!pages ? (
+            <div className="skeleton h-16 rounded-xl" />
+          ) : pages.length === 0 ? (
+            <p className="text-[12.5px] text-faint">No pages tracked yet.</p>
+          ) : (
+            <div className="grid gap-2 sm:grid-cols-2">
+              {pages.map((p) => (
+                <div key={p.trackedPageId} className="flex items-center gap-2 rounded-lg border border-line bg-white px-3 py-2">
+                  <span className="w-20 shrink-0 text-[12px] font-medium text-ink">{PAGE_TYPE_LABELS[p.pageType] ?? p.pageType}</span>
+                  <span className="flex-1 truncate font-mono text-[10.5px] text-faint" title={p.url}>{hostPath(p.url)}</span>
+                  <StatusPill status={p.status} />
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <h4 className="text-[13px] font-semibold text-ink">Signal history</h4>
+            {activeSignal && (
+              <button onClick={() => setActiveSignal(null)} className="text-[11px] font-semibold text-purple-deep hover:underline">
+                Clear filter
+              </button>
+            )}
+          </div>
+          {filtered.length === 0 ? (
+            <p className="text-[12.5px] text-faint">No changes detected yet.</p>
+          ) : (
+            <div className="space-y-2.5">
+              {filtered.map((e, i) => (
+                <SignalCard key={e.signalEventId} event={e} index={i} domain={domain} />
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </div>
