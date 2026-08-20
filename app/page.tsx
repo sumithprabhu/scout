@@ -1217,7 +1217,6 @@ function FinalCTA() {
               <button type="submit" className="rounded-pill bg-ink px-6 py-3 text-[15px] font-bold text-white transition-transform hover:-translate-y-px">Track it</button>
             </div>
           </form>
-          <p className="mt-4 text-[13px] text-ink/60">Free while in beta · No credit card required</p>
         </div>
       </div>
     </section>
