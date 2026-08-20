@@ -257,22 +257,49 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
   const [cursorVisible, setCursorVisible] = useState(false);
   const [clicking, setClicking] = useState(false);
   const lastInteraction = useRef(0);
-  const onInteract = () => { lastInteraction.current = Date.now(); setCursorVisible((v) => (v ? false : v)); };
+  // only a real click pauses the auto-pilot and hides the ghost cursor —
+  // merely hovering/moving the mouse over the panel must NOT interrupt it.
+  const onInteract = () => { lastInteraction.current = Date.now(); setCursorVisible(false); };
 
   // steps (rebuilt each render so closures read current data)
   const firstRowId = filtered[0]?.signalEventId ?? null;
+  const secondLastRowId = filtered.length >= 3 ? filtered[filtered.length - 2]?.signalEventId ?? null : null;
   const coNames = companies.map(([n]) => n);
-  const stepsRef = useRef<{ tour: string; act?: () => void; hold?: number }[]>([]);
+  const sideCoIds = trackedCompanies.map((c) => c.companyId);
+
+  interface TourStep {
+    tour: string;
+    act?: () => void;
+    hold?: number;
+    /** scroll the target row into view before moving the cursor to it (used for
+     *  a row that's below the fold in the feed list) */
+    scrollIntoView?: boolean;
+    /** a pure scroll beat — no click, just scrolls the found container to its
+     *  bottom then back to the top (used to "slide through" a company overview) */
+    scrollOnly?: boolean;
+  }
+  const stepsRef = useRef<TourStep[]>([]);
   stepsRef.current = [
-    { tour: "feed", act: () => { setView("feed"); setActiveType(null); setOpenId(null); setSelectedCo(null); }, hold: 1100 },
-    { tour: "chip-pricing", act: () => setActiveType("pricing_change") },
-    { tour: "chip-all", act: () => setActiveType(null), hold: 1100 },
-    { tour: "row-0", act: () => setOpenId(firstRowId), hold: 2000 },
-    { tour: "row-0", act: () => setOpenId(null) },
-    { tour: "portfolio", act: () => { setView("portfolio"); setSelectedCo(null); }, hold: 1000 },
-    { tour: "co-0", act: () => setSelectedCo(coNames[0] ?? null) },
-    { tour: "co-1", act: () => setSelectedCo(coNames[1] ?? null) },
-    { tour: "co-2", act: () => setSelectedCo(coNames[2] ?? null), hold: 1600 },
+    { tour: "feed", act: () => { setOpenCompanyId(null); setView("feed"); setActiveType(null); setOpenId(null); setSelectedCo(null); }, hold: 900 },
+    { tour: "row-0", act: () => setOpenId(firstRowId), hold: 1500 },
+    ...(secondLastRowId
+      ? [{ tour: "row-second-last", scrollIntoView: true, act: () => setOpenId(secondLastRowId), hold: 1700 } as TourStep]
+      : []),
+    { tour: "portfolio", act: () => { setOpenId(null); setView("portfolio"); setSelectedCo(null); }, hold: 900 },
+    { tour: "co-0", act: () => setSelectedCo(coNames[0] ?? null), hold: 1200 },
+    { tour: "co-1", act: () => setSelectedCo(coNames[1] ?? null), hold: 1400 },
+    ...(sideCoIds[0]
+      ? [
+          { tour: "side-co-0", act: () => { setSelectedCo(null); setOpenCompanyId(sideCoIds[0]); }, hold: 900 } as TourStep,
+          { tour: "company-scroll", scrollOnly: true, hold: 1500 } as TourStep,
+        ]
+      : []),
+    ...(sideCoIds[1]
+      ? [
+          { tour: "side-co-1", act: () => setOpenCompanyId(sideCoIds[1]), hold: 900 } as TourStep,
+          { tour: "company-scroll", scrollOnly: true, hold: 1500 } as TourStep,
+        ]
+      : []),
   ];
 
   useEffect(() => {
@@ -290,17 +317,34 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
         const step = steps[i % steps.length];
         const el = container?.querySelector(`[data-tour="${step.tour}"]`) as HTMLElement | null;
         if (container && el) {
-          const cr = container.getBoundingClientRect();
-          const er = el.getBoundingClientRect();
-          setCursorVisible(true);
-          setCursor({ x: er.left - cr.left + Math.min(er.width, 46) / 2, y: er.top - cr.top + er.height / 2 });
-          await sleep(900);
-          if (!idle()) continue; // user grabbed control mid-move → retry after idle
-          setClicking(true);
-          step.act?.();
-          await sleep(240);
-          setClicking(false);
-          await sleep(step.hold ?? 1300);
+          if (step.scrollOnly) {
+            const cr = container.getBoundingClientRect();
+            const er = el.getBoundingClientRect();
+            setCursorVisible(true);
+            setCursor({ x: er.left - cr.left + er.width - 24, y: er.top - cr.top + 30 });
+            await sleep(500);
+            if (!idle()) continue;
+            el.scrollTo({ top: el.scrollHeight, behavior: "smooth" });
+            await sleep(step.hold ?? 1400);
+            el.scrollTo({ top: 0, behavior: "smooth" });
+            await sleep(500);
+          } else {
+            if (step.scrollIntoView) {
+              el.scrollIntoView({ behavior: "smooth", block: "center" });
+              await sleep(500);
+            }
+            const cr = container.getBoundingClientRect();
+            const er = el.getBoundingClientRect();
+            setCursorVisible(true);
+            setCursor({ x: er.left - cr.left + Math.min(er.width, 46) / 2, y: er.top - cr.top + er.height / 2 });
+            await sleep(900);
+            if (!idle()) continue; // user grabbed control mid-move → retry after idle
+            setClicking(true);
+            step.act?.();
+            await sleep(240);
+            setClicking(false);
+            await sleep(step.hold ?? 1300);
+          }
         }
         i++;
       }
@@ -311,7 +355,7 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
   return (
     <div className="relative">
       <div className="absolute inset-x-0 top-10 h-[440px] bg-pinstripe opacity-70 [mask-image:linear-gradient(90deg,transparent,#000_10%,#000_90%,transparent)]" />
-      <div ref={panelRef} onPointerDown={onInteract} onPointerMove={onInteract} className="relative mx-auto max-w-[1140px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-soft">
+      <div ref={panelRef} onPointerDown={onInteract} className="relative mx-auto max-w-[1140px] overflow-hidden rounded-2xl border border-black/10 bg-white shadow-soft">
         {/* auto-pilot demo cursor */}
         {cursorVisible && (
           <motion.div className="pointer-events-none absolute left-0 top-0 z-40" animate={{ x: cursor.x, y: cursor.y }} transition={{ type: "spring", stiffness: 120, damping: 18, mass: 0.7 }}>
@@ -356,11 +400,12 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
             <SideItem label="Portfolio" icon="◫" active={!openCompanyId && view === "portfolio"} onClick={() => { setOpenCompanyId(null); setView("portfolio"); }} dataTour="portfolio" />
             <div className="mt-5 mb-2 px-2 text-[10.5px] font-bold uppercase tracking-wider text-faint">Companies</div>
             <div className="space-y-0.5">
-              {trackedCompanies.map((c) => {
+              {trackedCompanies.map((c, idx) => {
                 const on = openCompanyId === c.companyId;
                 return (
                   <button
                     key={c.companyId}
+                    data-tour={idx === 0 ? "side-co-0" : idx === 1 ? "side-co-1" : undefined}
                     onClick={() => setOpenCompanyId(c.companyId)}
                     className={`flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-[12.5px] transition-colors ${on ? "bg-mint font-semibold text-ink" : "text-muted hover:bg-mint/60"}`}
                   >
@@ -423,7 +468,7 @@ function FeedPanel({ events, companies: trackedCompanies }: { events: SignalEven
                   ) : (
                     <motion.div key={activeType ?? "all"} initial="hidden" animate="show" variants={{ show: { transition: { staggerChildren: 0.09 } } }} className="space-y-2.5">
                       {filtered.map((e, ri) => (
-                        <motion.div key={e.signalEventId} data-tour={ri === 0 ? "row-0" : undefined} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
+                        <motion.div key={e.signalEventId} data-tour={ri === 0 ? "row-0" : ri === filtered.length - 2 ? "row-second-last" : undefined} variants={{ hidden: { opacity: 0, y: 12 }, show: { opacity: 1, y: 0 } }} transition={{ duration: 0.35, ease: [0.16, 1, 0.3, 1] }}>
                           <FeedRow event={e} open={openId === e.signalEventId} onToggle={() => setOpenId(openId === e.signalEventId ? null : e.signalEventId)} domain={domainByName.get(e.companyName ?? "")} />
                         </motion.div>
                       ))}
@@ -552,7 +597,7 @@ function CompanyOverviewPanel({
   const domain = domainOf(company.rootUrl);
 
   return (
-    <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
+    <div data-tour="company-scroll" className="no-scrollbar min-h-0 flex-1 overflow-y-auto pr-1">
       <button onClick={onBack} className="mb-3 flex items-center gap-1.5 text-[12.5px] font-semibold text-muted hover:text-ink">
         ← Back
       </button>
